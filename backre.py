@@ -11,26 +11,41 @@ import matplotlib.pyplot as plt
 import cv2 as cv
 import os
 
+#Parameters
+COLORSPACE = cv.COLOR_BGR2HSV
+
 #Read QSD2
 images = glob.glob('./qsd2_w1/*.jpg')
 print("Query set 2 has " + str(len(images))+" images")
 
 for f in sorted(images):
-    #Compute channels on the chosen color space
+    name=os.path.splitext(os.path.split(f)[1])[0]
+    print("Image name:"+str(name))
+
+    #Read image and conver it to the chosen color space
     img=cv.imread(f,cv.IMREAD_COLOR)
-    img=cv.cvtColor(img,cv.COLOR_BGR2HSV)
-    hue=img[:,:,0]
-    sat=img[:,:,1]
-    val=img[:,:,2]
+    img=cv.cvtColor(img,COLORSPACE)
+    
+    #Compute channels on the chosen color space
+    #num_ch=0
+    #ch=img[:,:,num_ch]
+    c2=img[:,:,0]
+    c0=img[:,:,1]
+    c1=img[:,:,2]
     
 # =============================================================================
-#     plt.imshow(img[:,:,1])
+#     plt.imshow(c0)
+#     plt.show()
+#     
+#     plt.imshow(c1)
+#     plt.show()
+#     
+#     plt.imshow(c2)
 #     plt.show()
 # =============================================================================
-
-    sample = hue[0,0]
-    print(sample)
-    height,width=hue.shape[:2]
+    
+    #Height and width of channels
+    height,width=c0.shape[:2]
     
     #Amount of pixels per each side of the image
     percent=0.03
@@ -41,10 +56,10 @@ for f in sorted(images):
     print(aop_w)
 
     #Crop different portions of the image containing the background
-    portion=hue[0:aop_h, 0:width]
-    portion2=hue[0:height,0:aop_w]
-    portion3=hue[0:height,width-aop_w:width]
-    portion4=hue[height-aop_h:height,0:width]
+    portion=c0[0:aop_h, 0:width]
+    portion2=c0[0:height,0:aop_w]
+    portion3=c0[0:height,width-aop_w:width]
+    portion4=c0[height-aop_h:height,0:width]
     
 
 # =============================================================================
@@ -66,23 +81,22 @@ for f in sorted(images):
     max_p4=int(np.amax(portion4))
 
     #Compute absolute thresholds from all portions
-    minval=min(min_p1,min_p2)
-    maxval=min(max_p1,max_p2)
+    minval=min(min_p3,min_p4)
+    maxval=min(max_p3,max_p4)
     
     #Matrix where the mask will be stored
     mask=np.zeros((height,width))
     
     #Loop over the channel and create the mask
-    for i in xrange(hue.shape[0]):
-        for j in xrange(hue.shape[1]):
-            if hue[i,j]>=minval and hue[i,j]<=maxval:
+    for i in xrange(c0.shape[0]):
+        for j in xrange(c0.shape[1]):
+            if c0[i,j]>=minval and c0[i,j]<=maxval:
                 mask[i,j]=0
             else:
                 mask[i,j]=255
     
-    name=os.path.splitext(os.path.split(f)[1])[0]
     print(mask[0,0])
-    cv.imwrite('masks/'+name+'.png',mask)
+    cv.imwrite('masks10/'+name+'.png',mask)
 # =============================================================================
 #     plt.imshow(mask)
 #     plt.show()
