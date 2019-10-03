@@ -19,8 +19,8 @@ for f in sorted(images):
     #Compute channels on the chosen color space
     img=cv.imread(f,cv.IMREAD_COLOR)
     img=cv.cvtColor(img,cv.COLOR_BGR2HSV)
-    sat=img[:,:,0]
-    hue=img[:,:,1]
+    hue=img[:,:,0]
+    sat=img[:,:,1]
     val=img[:,:,2]
     
 # =============================================================================
@@ -32,38 +32,50 @@ for f in sorted(images):
     print(sample)
     height,width=hue.shape[:2]
     
-    percent=0.4
+    #Amount of pixels per each side of the image
+    percent=0.03
+    aop_h=int(round(percent*height))
+    aop_w=int(round(percent*width))
+    
+    print(aop_h)
+    print(aop_w)
 
-    #Crop a portion of the background
-    portion=hue[0:60, 0:width]
-    portion2=hue[0:height,0:60]
-    portion3=hue[0:height,0:width-20]
+    #Crop different portions of the image containing the background
+    portion=hue[0:aop_h, 0:width]
+    portion2=hue[0:height,0:aop_w]
+    portion3=hue[0:height,width-aop_w:width]
+    portion4=hue[height-aop_h:height,0:width]
+    
 
 # =============================================================================
 # plt.imshow(portion3)
 # plt.show()
 # =============================================================================
-
+    
+    #Compute thresholds from each portion
     min_p1=int(np.amin(portion))
     max_p1=int(np.amax(portion))
     
     min_p2=int(np.amin(portion2))
     max_p2=int(np.amax(portion2))
 
-# =============================================================================
-# min_p3=int(np.amin(portion3))
-# max_p3=int(np.amax(portion3))
-# =============================================================================
+    min_p3=int(np.amin(portion3))
+    max_p3=int(np.amax(portion3))
+    
+    min_p4=int(np.amin(portion4))
+    max_p4=int(np.amax(portion4))
 
+    #Compute absolute thresholds from all portions
     minval=min(min_p1,min_p2)
     maxval=min(max_p1,max_p2)
     
-    
+    #Matrix where the mask will be stored
     mask=np.zeros((height,width))
     
+    #Loop over the channel and create the mask
     for i in xrange(hue.shape[0]):
         for j in xrange(hue.shape[1]):
-            if hue[i,j]>=min_p1 and hue[i,j]<=max_p1:
+            if hue[i,j]>=minval and hue[i,j]<=maxval:
                 mask[i,j]=0
             else:
                 mask[i,j]=255
