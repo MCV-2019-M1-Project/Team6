@@ -79,7 +79,7 @@ def performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN):
 ################FUNCTIONS COPIED FROM PROJECT GITHUB#################################
     
 
-COLORSPACE = cv.COLOR_BGR2HSV
+COLORSPACE = cv.COLOR_BGR2Lab
 
 images = glob.glob('./qsd2_w1/*.jpg')
 print("Query set 2 has " + str(len(images))+" images")
