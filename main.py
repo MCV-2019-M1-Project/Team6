@@ -94,11 +94,8 @@ def main():
     final_ranking = search(queries, database, "euclidean")
 
     ## EVALUATION USING MAP@K ##
-    gt_list = []
-    for i in range(0,len(gt)):
-        gt_list.append([gt[i][0][1]])
         
-    mapk_ = ml_metrics.mapk(gt_list,final_ranking.tolist(),10)
+    mapk_ = ml_metrics.mapk(gt,final_ranking.tolist(),10)
     print('MAP@K = '+ str(mapk_))
 
     ## WRITE OUTPUT FILES ##
