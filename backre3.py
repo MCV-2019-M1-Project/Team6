@@ -161,8 +161,8 @@ for f in sorted(images):
     pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
     
     # Multiplies mask and original image
-    mask=cv.imread('masks/' + name + '.png', cv.IMREAD_COLOR)
-    comp=cv.bitwise_and(im_c, mask)
+    mask = cv.imread('masks/' + name + '.png', cv.IMREAD_COLOR)
+    comp = cv.bitwise_and(im_c, mask)
     cv.imwrite('masks/' + name + 'comp.jpg', comp)
     
     #print("Precision: "+str(pixel_precision))
