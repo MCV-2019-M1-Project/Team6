@@ -1,11 +1,4 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Oct  4 21:22:01 2019
-BACKGROUND REMOVAL 
-@author: jordi
-"""
-
+# Imports
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
@@ -78,38 +71,44 @@ def performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN):
     return [pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity]
 ################FUNCTIONS COPIED FROM PROJECT GITHUB#################################
     
-
+# Constants
 COLORSPACE = cv.COLOR_BGR2Lab
 
+# Lists images from query set
 images = glob.glob('./qsd2_w1/*.jpg')
 print("Query set 2 has " + str(len(images))+" images")
+
 num=0
 num2=0
 num3=0
+
 for f in sorted(images):
     
-
+    # Numeric identifier of query image
     name=os.path.splitext(os.path.split(f)[1])[0]
+    
+    # Query image reading
     g_t=cv.imread('qsd2_w1/'+name+'.png',cv.IMREAD_COLOR)
     g_t=cv.cvtColor(g_t,cv.COLOR_BGR2GRAY)
-    #print("Image name:"+str(name))
     
+    # Converts query image to chosen color space
     im_c=cv.imread(f,cv.IMREAD_COLOR)
     im=cv.cvtColor(im_c,COLORSPACE)
     
+    # Computes channels in chosen color space
     c0=im[:,:,0]
     c1=im[:,:,1]
     c2=im[:,:,2]
     
-    #Height and width of channel (=image dims)
+    # Height and width of channel (=image dims)
     height,width=c0.shape[:2]
         
-    #Percentage defining number of pixels per every portion of the image
+    # Percentage defining number of pixels per every portion of the image
     percent_c0=0.02
     percent_c1=0.03
     percent_c2=0.02
     
-    #Compute the amount of pixels according to every channel
+    # Computes the amount of pixels per every channel
     aop_h_c0=int(round(percent_c0*height))
     aop_w_c0=int(round(percent_c0*width))
     
@@ -119,7 +118,7 @@ for f in sorted(images):
     aop_h_c2=int(round(percent_c2*height))
     aop_w_c2=int(round(percent_c2*width))
     
-    #Define image portions to get background pixels from
+    # Defines image portions to get background pixels from
     portionc0_1=c0[0:aop_h_c0, 0:width]
     portionc1_1=c1[0:aop_h_c1, 0:width]
     portionc2_1=c2[0:aop_h_c2, 0:width]
@@ -127,14 +126,8 @@ for f in sorted(images):
     portionc0_2=c0[height-aop_h_c0:height,0:width]
     portionc1_2=c1[height-aop_h_c1:height,0:width]
     portionc2_2=c2[height-aop_h_c2:height,0:width]
-    
-# =============================================================================
-#     portionc0_2=c0[0:height,0:aop_w_c0]
-#     portionc1_2=c1[0:height,0:aop_w_c1]
-#     portionc2_2=c2[0:height,0:aop_w_c2]
-# =============================================================================
-    
-    #Compute minimum and max values per every portion and channel
+       
+    # Computes minimum and max values per every portion and channel
     min_c0_1=int(np.amin(portionc0_1))
     min_c1_1=int(np.amin(portionc1_1))
     min_c2_1=int(np.amin(portionc2_1))
@@ -159,15 +152,15 @@ for f in sorted(images):
     max_c1=max(max_c1_1,max_c1_2)
     max_c2=max(max_c2_1,max_c2_2)
 
-    #Compute the mask thresholding every channel of chosen color space
+    # Computes the mask thresholding every channel of chosen color space
     mask = 255-(cv.inRange(im,(min_c0,min_c1,min_c2),(max_c0,max_c1,max_c2)))
     cv.imwrite('masks/'+name+'.png',mask)
     
-    #Compute evaluation metrics
+    # Computes evaluation metrics
     pixelTP,pixelFP,pixelFN,pixelTN = performance_accumulation_pixel(mask,g_t)
     pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
     
-    #Multiplies mask and original image
+    # Multiplies mask and original image
     mask=cv.imread('masks/'+name+'.png',cv.IMREAD_COLOR)
     comp=cv.bitwise_and(im_c,mask)
     cv.imwrite('masks/'+name+'comp.jpg',comp)
@@ -176,7 +169,6 @@ for f in sorted(images):
     #print("Accuracy: "+str(pixel_accuracy))
     #print("Specificity: "+str(pixel_specificity))
     #print("Recall (sensitivity): "+str(pixel_sensitivity))
-    
     
     if (pixel_precision+pixel_sensitivity !=0):
         fscore=(2*pixel_precision*pixel_sensitivity)/(pixel_precision+pixel_sensitivity)
@@ -191,8 +183,4 @@ for f in sorted(images):
 print("Total number of paintings with Fscore > 0.9: " + str(num))
 print("Total number of paintings with Fscore between 0.7 and 0.9: " + str(num2))
 print("Total number of paintings with Fscore below 0.7: " + str(num3))
-# =============================================================================
-# cv.imshow("cuadrito2",mask)
-# cv.waitKey(0)
-# cv.destroyAllWindows
-# =============================================================================
+
