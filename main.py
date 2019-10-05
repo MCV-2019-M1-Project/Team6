@@ -7,21 +7,32 @@ import ml_metrics
 import math
 
 ## PARAMETERS ##
-NBINS = 80
+NBINS = 64
 COLORSPACE = cv.COLOR_BGR2Lab
+#COLORSPACE = cv.COLOR_RGB2YUV
 
 ## FUNCTIONS ##
 
 def extract_features(img):
+
+#Extracts feature vector from image. The returned vecor consists of the 1D histograms of
+# each of the image channels concatenated.
+
     hists = []
     npx = img.shape[0] * img.shape[1]
-    hist_1 = cv.calcHist([img], [0], None, [NBINS], [0, 256]) / npx
-    hist_2 = cv.calcHist([img], [1], None, [NBINS], [0, 256]) / npx
-    hist_3 = cv.calcHist([img], [2], None, [NBINS], [0, 256]) / npx
+    hist_1 = cv.calcHist([img], [0], None, [NBINS], [0, 255]) / npx
+    hist_2 = cv.calcHist([img], [1], None, [NBINS], [0, 255]) / npx
+    hist_3 = cv.calcHist([img], [2], None, [NBINS], [0, 255]) / npx
     hists = np.concatenate((hist_1, hist_2, hist_3))
     return hists
 
 def search(queries, database, distance):
+
+# For each of the queries, searches for the 10  most similar images in the database. The
+#decision is based on the feature vectors and a distance or similarity measure (Euclidean
+# distance and Hellinger Kernel similarity. Returns a 2D array containing the results of
+#the search for each of the queries.
+
     final_ranking = np.zeros((len(queries), 10), dtype=float)
     if(distance == "euclidean"):
         for i in range(0, len(queries)):
@@ -66,6 +77,7 @@ for f in sorted(glob.glob('./database/*.jpg')):
     img = cv.imread(f, cv.IMREAD_COLOR)
     img=cv.cvtColor(img, COLORSPACE)
     database.append(extract_features(img))
+
 print('Database has ' + str(len(database)) + ' images')
 
 ## READ THE QUERIES AND THE GT ##
@@ -79,7 +91,7 @@ for f in sorted(glob.glob('./qsd1_w1/*.jpg')):
 print('Query set has ' + str(len(queries)) + ' images')
 
 ## SEARCH FOR THE QUERIES IN THE DB ##
-final_ranking = search(queries,database,"hellinger")
+final_ranking = search(queries,database,"euclidean")
 
 ## EVALUATION USING MAP@K ##
 gt_list = []
