@@ -83,17 +83,19 @@ COLORSPACE = cv.COLOR_BGR2HSV
 
 images = glob.glob('./qsd2_w1/*.jpg')
 print("Query set 2 has " + str(len(images))+" images")
-
+num=0
+num2=0
+num3=0
 for f in sorted(images):
     
 
     name=os.path.splitext(os.path.split(f)[1])[0]
     g_t=cv.imread('qsd2_w1/'+name+'.png',cv.IMREAD_COLOR)
-    g_t=img=cv.cvtColor(g_t,cv.COLOR_BGR2GRAY)
-    print("Image name:"+str(name))
+    g_t=cv.cvtColor(g_t,cv.COLOR_BGR2GRAY)
+    #print("Image name:"+str(name))
     
-    im=cv.imread(f,cv.IMREAD_COLOR)
-    im=cv.cvtColor(im,COLORSPACE)
+    im_c=cv.imread(f,cv.IMREAD_COLOR)
+    im=cv.cvtColor(im_c,COLORSPACE)
     
     c0=im[:,:,0]
     c1=im[:,:,1]
@@ -149,19 +151,40 @@ for f in sorted(images):
     max_c1=max(max_c1_1,max_c1_2)
     max_c2=max(max_c2_1,max_c2_2)
 
-    
-    
-    mask = cv.inRange(im,(min_c0,min_c1,min_c2),(max_c0,max_c1,max_c2))
-    
-    cv.imwrite('masks_nm/'+name+'.png',255-mask)
-    
-    pixelTP,pixelFP,pixelFN,pixelTN = performance_accumulation_pixel(255-mask,g_t)
-    pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
 
-    print("Precision: "+str(pixel_precision))
-    print("Accuracy: "+str(pixel_accuracy))
-    print("Specificity: "+str(pixel_specificity))
-    print("Recall (sensitivity): "+str(pixel_sensitivity))
+    mask = 255-(cv.inRange(im,(min_c0,min_c1,min_c2),(max_c0,max_c1,max_c2)))
+    #final_mask=cv.bitwise_and(cv.cvtColor(im,cv.COLOR_BGR2GRAY),mask)
+    
+    cv.imwrite('masks/'+name+'.png',mask)
+    
+    
+    pixelTP,pixelFP,pixelFN,pixelTN = performance_accumulation_pixel(mask,g_t)
+    pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
+    
+    #Multiplies mask and original image
+    mask=cv.imread('masks/'+name+'.png',cv.IMREAD_COLOR)
+    comp=cv.bitwise_and(im_c,mask)
+    cv.imwrite('masks/'+name+'comp.jpg',comp)
+    
+    #print("Precision: "+str(pixel_precision))
+    #print("Accuracy: "+str(pixel_accuracy))
+    #print("Specificity: "+str(pixel_specificity))
+    #print("Recall (sensitivity): "+str(pixel_sensitivity))
+    
+    
+    if (pixel_precision+pixel_sensitivity !=0):
+        fscore=(2*pixel_precision*pixel_sensitivity)/(pixel_precision+pixel_sensitivity)
+        #print("F1-score: "+str(fscore))
+        if fscore>=0.9:
+            num=num+1
+        elif fscore>=0.7 and fscore<0.9:
+            num2=num2+1
+        elif fscore<0.7:
+            num3=num3+1
+    
+print("Total number of paintings with Fscore > 0.9: " + str(num))
+print("Total number of paintings with Fscore between 0.7 and 0.9: " + str(num2))
+print("Total number of paintings with Fscore below 0.7: " + str(num3))
 # =============================================================================
 # cv.imshow("cuadrito2",mask)
 # cv.waitKey(0)
