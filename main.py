@@ -1,4 +1,3 @@
-# Imports
 import cv2 as cv
 import numpy as np
 import glob
@@ -6,14 +5,13 @@ import pickle
 import ml_metrics
 import math
 import os
-from bitarray import bitarray
-
+from evaluation_funcs import performance_accumulation_pixel 
+from evaluation_funcs import performance_evaluation_pixel
 ## PARAMETERS ##
 NBINS = 64
 COLORSPACE = cv.COLOR_BGR2Lab
 DIST_METRIC="hellinger"
 QUERY_SET='qst2_w1'
-#COLORSPACE = cv.COLOR_RGB2YUV
 
 ## FUNCTIONS ##
 
@@ -78,9 +76,28 @@ def compute_mask(img,name):
     
     # Computes and saves the mask by thresholding every channel in the chosen color space
     mask = 255 - (cv.inRange(img,(min_c0, min_c1, min_c2),(max_c0, max_c1, max_c2)))
+
     #mask = cv.imread('qsd2_w1/'+ name + '.png', cv.IMREAD_COLOR)
     #mask = bitarray(mask.ravel())
-    return mask
+    
+    # Read ground truth
+    g_t = cv.imread('qsd2_w1/' + name + '.png', cv.IMREAD_COLOR)
+    g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
+    
+    # Compute evaluation metrics
+    pixelTP, pixelFP, pixelFN, pixelTN = performance_accumulation_pixel(mask,g_t)
+    pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
+    F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
+    
+    eval_metrics = [pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity, F1]
+    '''
+    print("Precision: "+str(pixel_precision))
+    print("Accuracy: "+str(pixel_accuracy))
+    print("Specificity: "+str(pixel_specificity))
+    print("Recall (sensitivity): "+str(pixel_sensitivity))
+    print("F1: "+str(F1))
+    '''
+    return mask, eval_metrics
 
 def extract_features(img,mask):
 
@@ -180,7 +197,8 @@ def main():
         if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1':
             mask = None
         elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1':
-            mask = compute_mask(img,name)
+            mask, eval_metrics = compute_mask(img,name)
+            print("F score: " + str(eval_metrics[4]))
             
         queries.append(extract_features(img,mask))
 
