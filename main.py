@@ -80,23 +80,24 @@ def compute_mask(img,name):
     #mask = cv.imread('qsd2_w1/'+ name + '.png', cv.IMREAD_COLOR)
     #mask = bitarray(mask.ravel())
     
-    # Read ground truth
-    g_t = cv.imread('qsd2_w1/' + name + '.png', cv.IMREAD_COLOR)
-    g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
-    
-    # Compute evaluation metrics
-    pixelTP, pixelFP, pixelFN, pixelTN = performance_accumulation_pixel(mask,g_t)
-    pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
-    F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
-    
-    eval_metrics = [pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity, F1]
-    '''
-    print("Precision: "+str(pixel_precision))
-    print("Accuracy: "+str(pixel_accuracy))
-    print("Specificity: "+str(pixel_specificity))
-    print("Recall (sensitivity): "+str(pixel_sensitivity))
-    print("F1: "+str(F1))
-    '''
+    if QUERY_SET == 'qsd2_w1 :
+        # Read ground truth
+        g_t = cv.imread('qsd2_w1/' + name + '.png', cv.IMREAD_COLOR)
+        g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
+        
+        # Compute evaluation metrics
+        pixelTP, pixelFP, pixelFN, pixelTN = performance_accumulation_pixel(mask,g_t)
+        pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
+        F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
+        
+        eval_metrics = [pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity, F1]
+        '''
+        print("Precision: "+str(pixel_precision))
+        print("Accuracy: "+str(pixel_accuracy))
+        print("Specificity: "+str(pixel_specificity))
+        print("Recall (sensitivity): "+str(pixel_sensitivity))
+        print("F1: "+str(F1))
+        '''
     return mask, eval_metrics
 
 def extract_features(img,mask):
