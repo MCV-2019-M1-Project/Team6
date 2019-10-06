@@ -1,3 +1,4 @@
+# Imports
 import cv2 as cv
 import numpy as np
 import glob
@@ -5,14 +6,14 @@ import pickle
 import ml_metrics
 import math
 import os
+#from bitarray import bitarray
 from evaluation_funcs import performance_accumulation_pixel 
 from evaluation_funcs import performance_evaluation_pixel
+
 ## PARAMETERS ##
 NBINS = 64
 COLORSPACE = cv.COLOR_BGR2Lab
 #COLORSPACE = cv.COLOR_RGB2YUV
-DIST_METRIC="hellinger"
-QUERY_SET='qst2_w1'
 
 ## FUNCTIONS ##
 
@@ -55,7 +56,7 @@ def compute_mask(img,name):
     min_c1_1 = int(np.amin(portionc1_1))
     min_c2_1 = int(np.amin(portionc2_1))
     
-    min_c0_2 = int(np.amin(portionc0_2))
+    min_c0_2 = int(np.amin(portionc0_https://www.google.com/search?q=HSV+histogram&client=ubuntu&hs=4Ym&channel=fs&source=lnms&tbm=isch&sa=X&ved=0ahUKEwih8_vtuYflAhUQohQKHRw9BPsQ_AUIESgB&biw=928&bih=931#imgrc=CB8OiZSkmFcLZM:2))
     min_c1_2 = int(np.amin(portionc1_2))
     min_c2_2 = int(np.amin(portionc2_2))
     
@@ -77,11 +78,12 @@ def compute_mask(img,name):
     
     # Computes and saves the mask by thresholding every channel in the chosen color space
     mask = 255 - (cv.inRange(img,(min_c0, min_c1, min_c2),(max_c0, max_c1, max_c2)))
+
     #mask = cv.imread('qsd2_w1/'+ name + '.png', cv.IMREAD_COLOR)
     #mask = bitarray(mask.ravel())
     
     # Read ground truth
-    g_t = cv.imread(QUERY_SET + '/' + name + '.png', cv.IMREAD_COLOR)
+    g_t = cv.imread('qsd2_w1/' + name + '.png', cv.IMREAD_COLOR)
     g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
     
     # Compute evaluation metrics
@@ -120,7 +122,6 @@ def search(queries, database, distance):
 #the search for each of the queries.
 
     final_ranking = np.zeros((len(queries), 10), dtype=float)
-    
     if(distance == "euclidean"):
         for i in range(0, len(queries)):
             ranking = np.ones((10, 2), dtype=float) * 3
@@ -138,25 +139,6 @@ def search(queries, database, distance):
                 idx = np.argmin(ranking[:, 1])
                 final_ranking[i, j] = ranking[idx, 0]
                 ranking[idx, :] = [3, 3]
-
-    if(distance == "chisq"):
-            for i in range(0, len(queries)):
-                ranking = np.ones((10, 2), dtype=float) * 3
-                for j in range(0, len(database)):
-                    # Compute the distance metric
-                    dist = sum( np.divide(pow(abs(database[j] - queries[i]), 2), (database[j] + queries[i]), out=np.zeros_like(database[j]), where=queries[i]!=0) )
-                    # Check the ranking and update it
-                    if (dist < max(ranking[:, 1])):
-                        # Add the distance and the id to the db
-                        idx = np.argmax(ranking[:, 1])
-                        ranking[idx, 0] = j
-                        ranking[idx, 1] = dist
-                # Store the closest K images
-                for j in range(0, 10):
-                    idx = np.argmin(ranking[:, 1])
-                    final_ranking[i, j] = ranking[idx, 0]
-                    ranking[idx, :] = [3, 3]
-
     if(distance == "hellinger"):
         for i in range(0, len(queries)):
             ranking = np.zeros((10, 2), dtype=float)
@@ -174,11 +156,12 @@ def search(queries, database, distance):
                 idx = np.argmax(ranking[:, 1])
                 final_ranking[i, j] = ranking[idx, 0]
                 ranking[idx, :] = [0, 0]
-
     return final_ranking
 
-def main():
+## READ THE DB AND STORE THE FEATURES ##
 
+
+def main():
     database = []
     for f in sorted(glob.glob('./database/*.jpg')):
         img = cv.imread(f, cv.IMREAD_COLOR)
@@ -189,14 +172,15 @@ def main():
     queries = []
     
     # Change to switch datasets
-    qs_l = './' + QUERY_SET + '/*.jpg'
+    qs = 'qsd1_w1'
+    qs_l = './' + qs + '/*.jpg'
     for f in sorted(glob.glob(qs_l)):
         name = os.path.splitext(os.path.split(f)[1])[0]
         img = cv.imread(f, cv.IMREAD_COLOR)
         img = cv.cvtColor(img, COLORSPACE)
-        if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1':
+        if qs == 'qsd1_w1':
             mask = None
-        elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1':
+        elif qs == 'qsd2_w1':
             mask, eval_metrics = compute_mask(img,name)
             print("F score: " + str(eval_metrics[4]))
             
@@ -204,19 +188,17 @@ def main():
 
     print('Query set has ' + str(len(queries)) + ' images')
 
+    gt = pickle.load(open('./' + qs + '/gt_corresps.pkl','rb'))
+
     ## SEARCH FOR THE QUERIES IN THE DB ##
-    final_ranking = search(queries, database, DIST_METRIC)
-    print('FINAL RANKING:')
-    print(final_ranking)
+    final_ranking = search(queries, database, "euclidean")
 
     ## EVALUATION USING MAP@K ##
-    if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qsd2_w1':
-        gt = pickle.load(open('./' + QUERY_SET + '/gt_corresps.pkl','rb'))
-        mapk_ = ml_metrics.mapk(gt,final_ranking.tolist(),10)
-        print('MAP@K = '+ str(mapk_))
+    mapk_ = ml_metrics.mapk(gt,final_ranking.tolist(),10)
+    print('MAP@K = '+ str(mapk_))
     
     ## WRITE OUTPUT FILES ##
-    pickle.dump(final_ranking.tolist(), open('./' + QUERY_SET + '/actual_corresps.pkl','wb'))
+    pickle.dump(final_ranking.tolist(), open('./' + qs + '/actual_corresps.pkl','wb'))
 
 if __name__== "__main__":
   main()
