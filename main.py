@@ -12,7 +12,7 @@ NBINS = 64
 COLORSPACE = cv.COLOR_BGR2Lab
 #COLORSPACE = cv.COLOR_RGB2YUV
 DIST_METRIC="hellinger"
-QUERY_SET='qst2_w1'
+QUERY_SET='qsd2_w1'
 
 ## FUNCTIONS ##
 
@@ -46,9 +46,17 @@ def compute_mask(img,name):
     portionc1_1 = c1[0:aop_h_c1, 0:width]
     portionc2_1 = c2[0:aop_h_c2, 0:width]
     
-    portionc0_2 = c0[height - aop_h_c0:height, 0:width]
-    portionc1_2 = c1[height - aop_h_c1:height, 0:width]
-    portionc2_2 = c2[height - aop_h_c2:height, 0:width]
+    # Method 1
+# =============================================================================
+#     portionc0_2 = c0[height - aop_h_c0:height, 0:width]
+#     portionc1_2 = c1[height - aop_h_c1:height, 0:width]
+#     portionc2_2 = c2[height - aop_h_c2:height, 0:width]
+# =============================================================================
+    
+    # Method 2
+    portionc0_2 = c0[0:height,0:aop_w_c0]
+    portionc1_2 = c1[0:height,0:aop_w_c1]
+    portionc2_2 = c2[0:height,0:aop_w_c2]
        
     # Computes minimum and max values per every portion and channel
     min_c0_1 = int(np.amin(portionc0_1))
@@ -77,8 +85,9 @@ def compute_mask(img,name):
     
     # Computes and saves the mask by thresholding every channel in the chosen color space
     mask = 255 - (cv.inRange(img,(min_c0, min_c1, min_c2),(max_c0, max_c1, max_c2)))
-    #mask = cv.imread('qsd2_w1/'+ name + '.png', cv.IMREAD_COLOR)
-    #mask = bitarray(mask.ravel())
+
+    # Save mask
+    cv.imwrite('masks/' + name + '.png', mask)
     
     # Read ground truth
     g_t = cv.imread(QUERY_SET + '/' + name + '.png', cv.IMREAD_COLOR)
@@ -188,8 +197,15 @@ def main():
 
     queries = []
     
-    # Change to switch datasets
     qs_l = './' + QUERY_SET + '/*.jpg'
+    
+    # Evaluation metrics storing arrays
+    precision = np.zeros(len(glob.glob(qs_l)))
+    recall = np.zeros(len(glob.glob(qs_l)))
+    fscore = np.zeros(len(glob.glob(qs_l)))
+    
+    i=0
+    
     for f in sorted(glob.glob(qs_l)):
         name = os.path.splitext(os.path.split(f)[1])[0]
         img = cv.imread(f, cv.IMREAD_COLOR)
@@ -198,11 +214,18 @@ def main():
             mask = None
         elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1':
             mask, eval_metrics = compute_mask(img,name)
-            print("F score: " + str(eval_metrics[4]))
-            
+            precision[i] = eval_metrics[0]
+            recall[i] = eval_metrics[3]
+            fscore[i] = eval_metrics[4]
+        
+        i+=1
         queries.append(extract_features(img,mask))
-
-    print('Query set has ' + str(len(queries)) + ' images')
+    
+    if QUERY_SET == 'qsd2_w1':
+        print('Query set has ' + str(len(queries)) + ' images')
+        print('Precision: ' + str(np.mean(precision)))
+        print('Recall: ' + str(np.mean(recall)))
+        print('F-measure: ' + str(np.mean(fscore)))
 
     ## SEARCH FOR THE QUERIES IN THE DB ##
     final_ranking = search(queries, database, DIST_METRIC)
