@@ -1,10 +1,4 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
-"""
-BACKGROUND REMOVAL
-@author: jordi
-"""
-
+#IMPORTS
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
@@ -86,11 +80,13 @@ for f in sorted(images):
     cv.imwrite('masks/'+name+'.png',mask)
     
 
-    #Compute evaluation metrics    
-    pixelTP,pixelFP,pixelFN,pixelTN = performance_accumulation_pixel(mask,g_t)
-    pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
-
-    print("Precision: "+str(pixel_precision))
-    print("Accuracy: "+str(pixel_accuracy))
-    print("Specificity: "+str(pixel_specificity))
-    print("Recall (sensitivity): "+str(pixel_sensitivity))
+# =============================================================================
+#     #Compute evaluation metrics    
+#     pixelTP,pixelFP,pixelFN,pixelTN = performance_accumulation_pixel(mask,g_t)
+#     pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
+# 
+#     print("Precision: "+str(pixel_precision))
+#     print("Accuracy: "+str(pixel_accuracy))
+#     print("Specificity: "+str(pixel_specificity))
+#     print("Recall (sensitivity): "+str(pixel_sensitivity))
+# =============================================================================
