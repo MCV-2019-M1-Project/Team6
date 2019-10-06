@@ -29,3 +29,4 @@ ipython_config.py
 # End of https://www.gitignore.io/api/jupyternotebooks,visualstudiocode
 .ipynb_checkpoints/test1-checkpoint.ipynb
 qsd1_w1/actual_corresps.pkl
+*.png
