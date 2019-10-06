@@ -7,15 +7,16 @@ import math
 import os
 from evaluation_funcs import performance_accumulation_pixel 
 from evaluation_funcs import performance_evaluation_pixel
+
 ## PARAMETERS ##
-NBINS = 64
-COLORSPACE = cv.COLOR_BGR2Lab
-#COLORSPACE = cv.COLOR_RGB2YUV
-DIST_METRIC="hellinger"
-QUERY_SET='qsd2_w1'
+NBINS = 64 # Number of bins (from 0 to 255)
+COLORSPACE = cv.COLOR_BGR2Lab #BGR2YUV, BGR2HSV, BGR2Lab...
+DIST_METRIC="hellinger" #'euclidean' 'chisq' or 'hellinger'
+BG_REMOVAL = 1 # 1 or 2 bg removal method
+QUERY_SET='qst1_w1' # Input query set
+
 
 ## FUNCTIONS ##
-
 def compute_mask(img,name):
     
     # Computes channels in chosen color space
@@ -46,17 +47,16 @@ def compute_mask(img,name):
     portionc1_1 = c1[0:aop_h_c1, 0:width]
     portionc2_1 = c2[0:aop_h_c2, 0:width]
     
-    # Method 1
-# =============================================================================
-#     portionc0_2 = c0[height - aop_h_c0:height, 0:width]
-#     portionc1_2 = c1[height - aop_h_c1:height, 0:width]
-#     portionc2_2 = c2[height - aop_h_c2:height, 0:width]
-# =============================================================================
-    
-    # Method 2
-    portionc0_2 = c0[0:height,0:aop_w_c0]
-    portionc1_2 = c1[0:height,0:aop_w_c1]
-    portionc2_2 = c2[0:height,0:aop_w_c2]
+    if(BG_REMOVAL == 1) :
+        # Method 1
+        portionc0_2 = c0[height - aop_h_c0:height, 0:width]
+        portionc1_2 = c1[height - aop_h_c1:height, 0:width]
+        portionc2_2 = c2[height - aop_h_c2:height, 0:width]
+    elif(BG_REMOVAL == 2):    
+        # Method 2
+        portionc0_2 = c0[0:height,0:aop_w_c0]
+        portionc1_2 = c1[0:height,0:aop_w_c1]
+        portionc2_2 = c2[0:height,0:aop_w_c2]
        
     # Computes minimum and max values per every portion and channel
     min_c0_1 = int(np.amin(portionc0_1))
