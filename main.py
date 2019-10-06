@@ -11,6 +11,8 @@ from bitarray import bitarray
 ## PARAMETERS ##
 NBINS = 64
 COLORSPACE = cv.COLOR_BGR2Lab
+DIST_METRIC="hellinger"
+QUERY_SET='qst2_w1'
 #COLORSPACE = cv.COLOR_RGB2YUV
 
 ## FUNCTIONS ##
@@ -101,6 +103,7 @@ def search(queries, database, distance):
 #the search for each of the queries.
 
     final_ranking = np.zeros((len(queries), 10), dtype=float)
+
     if(distance == "euclidean"):
         for i in range(0, len(queries)):
             ranking = np.ones((10, 2), dtype=float) * 3
@@ -118,6 +121,25 @@ def search(queries, database, distance):
                 idx = np.argmin(ranking[:, 1])
                 final_ranking[i, j] = ranking[idx, 0]
                 ranking[idx, :] = [3, 3]
+
+    if(distance == "chisq"):
+        for i in range(0, len(queries)):
+            ranking = np.ones((10, 2), dtype=float) * 3
+            for j in range(0, len(database)):
+                # Compute the distance metric
+                dist = sum( np.divide(pow(abs(database[j] - queries[i]), 2), (database[j] + queries[i]), out=np.zeros_like(database[j]), where=queries[i]!=0) )
+                # Check the ranking and update it
+                if (dist < max(ranking[:, 1])):
+                    # Add the distance and the id to the db
+                    idx = np.argmax(ranking[:, 1])
+                    ranking[idx, 0] = j
+                    ranking[idx, 1] = dist
+            # Store the closest K images
+            for j in range(0, 10):
+                idx = np.argmin(ranking[:, 1])
+                final_ranking[i, j] = ranking[idx, 0]
+                ranking[idx, :] = [3, 3]
+
     if(distance == "hellinger"):
         for i in range(0, len(queries)):
             ranking = np.zeros((10, 2), dtype=float)
@@ -135,12 +157,11 @@ def search(queries, database, distance):
                 idx = np.argmax(ranking[:, 1])
                 final_ranking[i, j] = ranking[idx, 0]
                 ranking[idx, :] = [0, 0]
+
     return final_ranking
 
-## READ THE DB AND STORE THE FEATURES ##
-
-
 def main():
+
     database = []
     for f in sorted(glob.glob('./database/*.jpg')):
         img = cv.imread(f, cv.IMREAD_COLOR)
@@ -151,33 +172,31 @@ def main():
     queries = []
     
     # Change to switch datasets
-    qs = 'qsd1_w1'
-    qs_l = './' + qs + '/*.jpg'
+    qs_l = './' + QUERY_SET + '/*.jpg'
     for f in sorted(glob.glob(qs_l)):
         name = os.path.splitext(os.path.split(f)[1])[0]
         img = cv.imread(f, cv.IMREAD_COLOR)
         img = cv.cvtColor(img, COLORSPACE)
-        if qs == 'qsd1_w1':
+        if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1':
             mask = None
-        elif qs == 'qsd2_w1':
+        elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1':
             mask = compute_mask(img,name)
             
         queries.append(extract_features(img,mask))
 
     print('Query set has ' + str(len(queries)) + ' images')
 
-    gt = pickle.load(open('./' + qs + '/gt_corresps.pkl','rb'))
-
     ## SEARCH FOR THE QUERIES IN THE DB ##
-    final_ranking = search(queries, database, "euclidean")
+    final_ranking = search(queries, database, DIST_METRIC)
+    print(final_ranking)
 
     ## EVALUATION USING MAP@K ##
-        
+    gt = pickle.load(open('./' + QUERY_SET + '/gt_corresps.pkl','rb'))
     mapk_ = ml_metrics.mapk(gt,final_ranking.tolist(),10)
     print('MAP@K = '+ str(mapk_))
 
     ## WRITE OUTPUT FILES ##
-    pickle.dump(final_ranking.tolist(), open('./' + qs + '/actual_corresps.pkl','wb'))
+    pickle.dump(final_ranking.tolist(), open('./' + QUERY_SET + '/actual_corresps.pkl','wb'))
 
 if __name__== "__main__":
   main()
