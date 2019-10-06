@@ -5,16 +5,33 @@ import pickle
 import ml_metrics
 import math
 import os
+import yaml
 from evaluation_funcs import performance_accumulation_pixel 
 from evaluation_funcs import performance_evaluation_pixel
 
 ## PARAMETERS ##
+with open("config.yml", 'r') as ymlfile:
+    cfg = yaml.safe_load(ymlfile)
+
+if cfg['colorspace'] == 'HSV' :
+    COLORSPACE = cv.COLOR_BGR2HSV
+elif cfg['colorspace'] == 'YUV' :
+    COLORSPACE = cv.COLOR_BGR2YUV
+elif cfg['colorspace'] == 'LAB' :
+    COLORSPACE = cv.COLOR_BGR2Lab
+
+NBINS = cfg['nbins']    # Number of bins (from 0 to 255) 
+DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
+BG_REMOVAL = cfg['bgrm'] # 1 or 2 bg removal method
+QUERY_SET= cfg['queryset'] # Input query set
+
+"""
 NBINS = 64 # Number of bins (from 0 to 255)
 COLORSPACE = cv.COLOR_BGR2Lab #BGR2YUV, BGR2HSV, BGR2Lab...
 DIST_METRIC="hellinger" #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = 1 # 1 or 2 bg removal method
 QUERY_SET='qst1_w1' # Input query set
-
+"""
 
 ## FUNCTIONS ##
 def compute_mask(img,name):

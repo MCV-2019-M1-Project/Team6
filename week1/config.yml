@@ -1,0 +1,5 @@
+nbins: 64                      # Number of bins (from 0 to 255)
+colorspace: LAB                # YUV, LAB or HSV
+dist: hellinger                #'euclidean' 'chisq' or 'hellinger'
+bgrm: 1                        # 1 or 2 bg removal method
+queryset: qsd1_w1              # Name of the folder containing the queries (same directory as main.py)1
