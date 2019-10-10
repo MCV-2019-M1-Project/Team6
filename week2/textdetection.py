@@ -30,20 +30,37 @@ for f in sorted(images):
     # Obtain image dimensions
     height,width = img_gray.shape[:2]
     
-    # Bounds to decide whther opening or closing must be applied
+    # Bounds to decide whether opening or closing must be applied
     min_a = round(width/2)
-    max_a = round(min_a + 2)
+    max_a = round(min_a + 6)
     
-    for i in range(min_a, max_a):
-        col = img_gray[:,i]
+    counts_t = np.zeros(max_a-min_a)
+    values_t = np.zeros(max_a-min_a)
+    
+    i = 0
+    
+    for p in range(min_a, max_a):
+        # Per each column, compute number of ocurrences of every pixel value
+        col = img_gray[:,p]
         values = pd.Series(col).value_counts().keys().tolist()
         counts = pd.Series(col).value_counts().tolist()
         
-        if int(counts[0]) > 20:
-            if int(values[0]) <= 200:
-                opening = cv.morphologyEx(img, cv.MORPH_OPEN, strel)
-                cv.imwrite('results/' + name + '_opening.png', opening)
-            elif int(values[0]) > 200:
-                closing = cv.morphologyEx(img, cv.MORPH_CLOSE, strel)
-                cv.imwrite('results/' + name + '_closing.png', closing)
+        values_t[i] = values[0]
+        counts_t[i] = counts[0]
+       
+        i += 1
+    
+    level = max(values_t)
+    
+    if level < 128:
+        opening = cv.morphologyEx(img, cv.MORPH_OPEN, strel)
+        cv.imwrite('results/' + name + '_opening.png', opening)
+    elif level > 128:
+        closing = cv.morphologyEx(img, cv.MORPH_CLOSE, strel)
+        cv.imwrite('results/' + name + '_closing.png', closing)
+        
+    #print(str(name))
+    #print(values_t)
+    #print(counts_t)
+
 
