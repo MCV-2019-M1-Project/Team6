@@ -8,20 +8,20 @@ import cv2 as cv
 import numpy as np
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
-from PIL import Image
+
 
 QUERY_SET='qsd1_w2'
 images = glob.glob('./' + QUERY_SET + '/*.jpg')
 print(str(QUERY_SET) + " has " + str(len(images)) + " images")
 
-# =============================================================================
-# img = cv.imread('qsd1_w2/00003.jpg', cv.IMREAD_COLOR)
-# img_gray = cv.cvtColor(img, cv.COLOR_RGB2GRAY)
-# =============================================================================
-
 # Structuring element
 strel = np.ones((15,15), np.uint8)
+
+# Structuring element used after text removal
+strel_pd = np.ones((20,20),np.uint8)
+
+# Number of columns considered from the center of the image towards the right
+num_cols = 6
 
 for f in sorted(images):
     # Read image
@@ -34,7 +34,7 @@ for f in sorted(images):
     
     # Boundaries of the analyzed area
     min_a = round(width/2)
-    max_a = round(min_a + 6)
+    max_a = round(min_a + num_cols)
     
     # Store pixel values in the analyzed area
     counts_t = np.zeros(max_a-min_a)
@@ -48,10 +48,10 @@ for f in sorted(images):
         
         # Pixel values and number of ocurrences for the whole column
         values = pd.Series(col).value_counts().keys().tolist()
-        counts = pd.Series(col).value_counts().tolist()
+        # counts = pd.Series(col).value_counts().tolist()
         
         values_t[i] = values[0]
-        counts_t[i] = counts[0]
+        # counts_t[i] = counts[0]
        
         i += 1
     
@@ -65,9 +65,15 @@ for f in sorted(images):
         cv.imwrite('results/' + name + '_closing.png', final_img)
     
     # Create mask to identify bounding box area
-    mask = (final_img == level)
-    mask = mask.astype(np.uint8)
-    mask *= 255
+    if level < 128:
+        mask = (final_img != level)
+        mask = mask.astype(np.uint8)
+        mask *= 255
+        mask = cv.bitwise_not(mask)
+    elif level > 128:
+        mask = (final_img == level)
+        mask = mask.astype(np.uint8)
+        mask *= 255
     
     cv.imwrite('results/' + name + '_mask.png', mask)
 
