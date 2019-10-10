@@ -8,6 +8,8 @@ import cv2 as cv
 import numpy as np
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
+from PIL import Image
 
 QUERY_SET='qsd1_w2'
 images = glob.glob('./' + QUERY_SET + '/*.jpg')
@@ -30,10 +32,11 @@ for f in sorted(images):
     # Obtain image dimensions
     height,width = img_gray.shape[:2]
     
-    # Bounds to decide whether opening or closing must be applied
+    # Boundaries of the analyzed area
     min_a = round(width/2)
     max_a = round(min_a + 6)
     
+    # Store pixel values in the analyzed area
     counts_t = np.zeros(max_a-min_a)
     values_t = np.zeros(max_a-min_a)
     
@@ -42,6 +45,8 @@ for f in sorted(images):
     for p in range(min_a, max_a):
         # Per each column, compute number of ocurrences of every pixel value
         col = img_gray[:,p]
+        
+        # Pixel values and number of ocurrences for the whole column
         values = pd.Series(col).value_counts().keys().tolist()
         counts = pd.Series(col).value_counts().tolist()
         
@@ -50,17 +55,26 @@ for f in sorted(images):
        
         i += 1
     
-    level = max(values_t)
+    level = np.mean(values_t)
     
     if level < 128:
-        opening = cv.morphologyEx(img, cv.MORPH_OPEN, strel)
-        cv.imwrite('results/' + name + '_opening.png', opening)
+        final_img = cv.morphologyEx(img_gray, cv.MORPH_OPEN, strel)
+        cv.imwrite('results/' + name + '_opening.png', final_img)
     elif level > 128:
-        closing = cv.morphologyEx(img, cv.MORPH_CLOSE, strel)
-        cv.imwrite('results/' + name + '_closing.png', closing)
-        
-    #print(str(name))
-    #print(values_t)
-    #print(counts_t)
+        final_img = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, strel)
+        cv.imwrite('results/' + name + '_closing.png', final_img)
+    
+    # Create mask to identify bounding box area
+    mask = (final_img == level)
+    mask = mask.astype(np.uint8)
+    mask *= 255
+    
+    cv.imwrite('results/' + name + '_mask.png', mask)
+
+# =============================================================================
+#     print(str(name))
+#     print(values_t)
+#     print(counts_t)
+# =============================================================================
 
 
