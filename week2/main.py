@@ -23,7 +23,7 @@ elif cfg['colorspace'] == 'LAB' :
 NBINS = cfg['nbins']    # Number of bins (from 0 to 255)
 DIVISIONS = cfg['divs'] # Number of divisions per dimension [2,4,8,...]
 DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
-BG_REMOVAL = cfg['bgrm'] # 1 or 2 bg removal method
+BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
 
 """
@@ -36,73 +36,98 @@ QUERY_SET='qst1_w1' # Input query set
 
 ## FUNCTIONS ##
 def compute_mask(img,name):
-    
-    # Computes channels in chosen color space
-    c0 = img[:,:,0]
-    c1 = img[:,:,1]
-    c2 = img[:,:,2]
-    
-    # Height and width of channel (=image dims)
-    height,width = c0.shape[:2]
+    # METHOD 3 BASED ON MORPHOLOGY
+    if(BG_REMOVAL==3):
+        # Compute morphological gradient by dilation (keep inner edges to remove wall posters)
+        kernel = np.ones((40,40),np.uint8)
+        img_dilation = cv.dilate(img,kernel,iterations = 1)
+        img_gradient = img_dilation - img
         
-    # Percentage defining number of pixels per every portion of the image
-    percent_c0 = 0.02
-    percent_c1 = 0.03
-    percent_c2 = 0.02
-    
-    # Computes the amount of pixels per every channel
-    aop_h_c0 = int(round(percent_c0 * height))
-    aop_w_c0 = int(round(percent_c0 * width))
-    
-    aop_h_c1 = int(round(percent_c1 * height))
-    aop_w_c1 = int(round(percent_c1 * width))
-    
-    aop_h_c2 = int(round(percent_c2 * height))
-    aop_w_c2 = int(round(percent_c2 * width))
-    
-    # Defines image portions to get background pixels from
-    portionc0_1 = c0[0:aop_h_c0, 0:width]
-    portionc1_1 = c1[0:aop_h_c1, 0:width]
-    portionc2_1 = c2[0:aop_h_c2, 0:width]
-    
-    if(BG_REMOVAL == 1) :
-        # Method 1
-        portionc0_2 = c0[height - aop_h_c0:height, 0:width]
-        portionc1_2 = c1[height - aop_h_c1:height, 0:width]
-        portionc2_2 = c2[height - aop_h_c2:height, 0:width]
-    elif(BG_REMOVAL == 2):    
-        # Method 2
-        portionc0_2 = c0[0:height,0:aop_w_c0]
-        portionc1_2 = c1[0:height,0:aop_w_c1]
-        portionc2_2 = c2[0:height,0:aop_w_c2]
-       
-    # Computes minimum and max values per every portion and channel
-    min_c0_1 = int(np.amin(portionc0_1))
-    min_c1_1 = int(np.amin(portionc1_1))
-    min_c2_1 = int(np.amin(portionc2_1))
-    
-    min_c0_2 = int(np.amin(portionc0_2))
-    min_c1_2 = int(np.amin(portionc1_2))
-    min_c2_2 = int(np.amin(portionc2_2))
-    
-    max_c0_1 = int(np.amax(portionc0_1))
-    max_c1_1 = int(np.amax(portionc1_1))
-    max_c2_1 = int(np.amax(portionc2_1))
-    
-    max_c0_2 = int(np.amax(portionc0_2))
-    max_c1_2 = int(np.amax(portionc1_2))
-    max_c2_2 = int(np.amax(portionc2_2))
-    
-    min_c0 = min(min_c0_1, min_c0_2)
-    min_c1 = min(min_c1_1, min_c1_2)
-    min_c2 = min(min_c2_1, min_c2_2)
-    
-    max_c0 = max(max_c0_1, max_c0_2)
-    max_c1 = max(max_c1_1, max_c1_2)
-    max_c2 = max(max_c2_1, max_c2_2)
-    
-    # Computes and saves the mask by thresholding every channel in the chosen color space
-    mask = 255 - (cv.inRange(img,(min_c0, min_c1, min_c2),(max_c0, max_c1, max_c2)))
+        # Thresholding
+        _,img_th = cv.threshold(img_gradient, 30, 255, cv.THRESH_BINARY)
+        #retval,mask_img = cv.threshold(final_img, 30, 255, cv.THRESH_BINARY_INV+cv.THRESH_OTSU)
+
+        # Computing external contours
+        contours, _ = cv.findContours(img_th, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+        img_contour = np.zeros_like(img_th)
+        cv.drawContours(img_contour, contours, -1, 255, -1)
+        
+        # Opening to remove wall posters
+        kernel = np.ones((100,100),np.uint8)
+        mask = cv.morphologyEx(img_contour, cv.MORPH_OPEN, kernel)
+
+        # Avoid all zeros image
+        if(mask.any()==0):
+            mask = img_contour
+
+    # METHODS 1 AND 2 BASED ON COLOR THRESHOLDING
+    else:
+        # Computes channels in chosen color space
+        c0 = img[:,:,0]
+        c1 = img[:,:,1]
+        c2 = img[:,:,2]
+        
+        # Height and width of channel (=image dims)
+        height,width = c0.shape[:2]
+            
+        # Percentage defining number of pixels per every portion of the image
+        percent_c0 = 0.02
+        percent_c1 = 0.03
+        percent_c2 = 0.02
+        
+        # Computes the amount of pixels per every channel
+        aop_h_c0 = int(round(percent_c0 * height))
+        aop_w_c0 = int(round(percent_c0 * width))
+        
+        aop_h_c1 = int(round(percent_c1 * height))
+        aop_w_c1 = int(round(percent_c1 * width))
+        
+        aop_h_c2 = int(round(percent_c2 * height))
+        aop_w_c2 = int(round(percent_c2 * width))
+        
+        # Defines image portions to get background pixels from
+        portionc0_1 = c0[0:aop_h_c0, 0:width]
+        portionc1_1 = c1[0:aop_h_c1, 0:width]
+        portionc2_1 = c2[0:aop_h_c2, 0:width]
+        
+        if(BG_REMOVAL == 1) :
+            # Method 1
+            portionc0_2 = c0[height - aop_h_c0:height, 0:width]
+            portionc1_2 = c1[height - aop_h_c1:height, 0:width]
+            portionc2_2 = c2[height - aop_h_c2:height, 0:width]
+        elif(BG_REMOVAL == 2):    
+            # Method 2
+            portionc0_2 = c0[0:height,0:aop_w_c0]
+            portionc1_2 = c1[0:height,0:aop_w_c1]
+            portionc2_2 = c2[0:height,0:aop_w_c2]
+        
+        # Computes minimum and max values per every portion and channel
+        min_c0_1 = int(np.amin(portionc0_1))
+        min_c1_1 = int(np.amin(portionc1_1))
+        min_c2_1 = int(np.amin(portionc2_1))
+        
+        min_c0_2 = int(np.amin(portionc0_2))
+        min_c1_2 = int(np.amin(portionc1_2))
+        min_c2_2 = int(np.amin(portionc2_2))
+        
+        max_c0_1 = int(np.amax(portionc0_1))
+        max_c1_1 = int(np.amax(portionc1_1))
+        max_c2_1 = int(np.amax(portionc2_1))
+        
+        max_c0_2 = int(np.amax(portionc0_2))
+        max_c1_2 = int(np.amax(portionc1_2))
+        max_c2_2 = int(np.amax(portionc2_2))
+        
+        min_c0 = min(min_c0_1, min_c0_2)
+        min_c1 = min(min_c1_1, min_c1_2)
+        min_c2 = min(min_c2_1, min_c2_2)
+        
+        max_c0 = max(max_c0_1, max_c0_2)
+        max_c1 = max(max_c1_1, max_c1_2)
+        max_c2 = max(max_c2_1, max_c2_2)
+        
+        # Computes and saves the mask by thresholding every channel in the chosen color space
+        mask = 255 - (cv.inRange(img,(min_c0, min_c1, min_c2),(max_c0, max_c1, max_c2)))
 
     # Save mask
     cv.imwrite('masks/' + name + '.png', mask)
@@ -246,12 +271,16 @@ def main():
     i=0
     for f in sorted(glob.glob(qs_l)):
         name = os.path.splitext(os.path.split(f)[1])[0]
-        img = cv.imread(f, cv.IMREAD_COLOR)
-        img = cv.cvtColor(img, COLORSPACE)
+        im = cv.imread(f, cv.IMREAD_COLOR)
+        img = cv.cvtColor(im, COLORSPACE)
         if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1':
             mask = None
         elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1':
-            mask, eval_metrics = compute_mask(img,name)
+            if BG_REMOVAL==3:
+                img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
+                mask, eval_metrics = compute_mask(img_gray,name)
+            else:
+                mask, eval_metrics = compute_mask(img,name)
             precision[i] = eval_metrics[0]
             recall[i] = eval_metrics[3]
             fscore[i] = eval_metrics[4]
