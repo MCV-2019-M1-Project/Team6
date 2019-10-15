@@ -7,8 +7,8 @@ import math
 import pandas as pd
 import os
 import yaml
-from evaluation_funcs import performance_accumulation_pixel 
-from evaluation_funcs import performance_evaluation_pixel
+#from evaluation_funcs import performance_accumulation_pixel
+#from evaluation_funcs import performance_evaluation_pixel
 
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
@@ -26,6 +26,8 @@ DIVISIONS = cfg['divs'] # Number of divisions per dimension [2,4,8,...]
 DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
+
+K=3
 
 ## FUNCTIONS ##
 def text_removal_mask(img, name, strel, strel_pdf, num_cols, coords):
@@ -258,18 +260,18 @@ def extract_features(img,mask):
 
 
 
-def search(queries, database, distance):
+def search(queries, database, distance, k):
 
-# For each of the queries, searches for the 10  most similar images in the database. The
+# For each of the queries, searches for the K  most similar images in the database. The
 #decision is based on the feature vectors and a distance or similarity measure (Euclidean
 # distance and Hellinger Kernel similarity. Returns a 2D array containing the results of
 #the search for each of the queries.
 
-    final_ranking = np.zeros((len(queries), 10), dtype=float)
+    final_ranking = np.zeros((len(queries), k), dtype=float)
     
     if(distance == "euclidean"):
         for i in range(0, len(queries)):
-            ranking = np.ones((10, 2), dtype=float) * 9999
+            ranking = np.ones((k, 2), dtype=float) * 9999
             for j in range(0, len(database)):
                 # Compute the distance metric
                 dist = sum(pow(abs(database[j] - queries[i]), 2))
@@ -280,14 +282,14 @@ def search(queries, database, distance):
                     ranking[idx, 0] = j
                     ranking[idx, 1] = dist
             # Store the closest K images
-            for j in range(0, 10):
+            for j in range(0, k):
                 idx = np.argmin(ranking[:, 1])
                 final_ranking[i, j] = ranking[idx, 0]
                 ranking[idx, :] = [9999, 9999]
 
     if(distance == "chisq"):
             for i in range(0, len(queries)):
-                ranking = np.ones((10, 2), dtype=float) * 9999
+                ranking = np.ones((k, 2), dtype=float) * 9999
                 for j in range(0, len(database)):
                     # Compute the distance metric
                     dist = sum( np.divide(pow(abs(database[j] - queries[i]), 2), (database[j] + queries[i]), out=np.zeros_like(database[j]), where=queries[i]!=0) )
@@ -298,14 +300,14 @@ def search(queries, database, distance):
                         ranking[idx, 0] = j
                         ranking[idx, 1] = dist
                 # Store the closest K images
-                for j in range(0, 10):
+                for j in range(0, k):
                     idx = np.argmin(ranking[:, 1])
                     final_ranking[i, j] = ranking[idx, 0]
                     ranking[idx, :] = [9999, 9999]
 
     if(distance == "hellinger"):
         for i in range(0, len(queries)):
-            ranking = np.zeros((10, 2), dtype=float)
+            ranking = np.zeros((k, 2), dtype=float)
             for j in range(0, len(database)):
                 # Compute the distance metric
                 dist = np.sum(np.sqrt(np.multiply(np.array(database[j]),np.array(queries[i]))))
@@ -316,7 +318,7 @@ def search(queries, database, distance):
                     ranking[idx, 0] = j
                     ranking[idx, 1] = dist
             # Store the closest K images
-            for j in range(0, 10):
+            for j in range(0, k):
                 idx = np.argmax(ranking[:, 1])
                 final_ranking[i, j] = ranking[idx, 0]
                 ranking[idx, :] = [0, 0]
@@ -394,14 +396,14 @@ def main():
         print(realcoords)
         
     ## SEARCH FOR THE QUERIES IN THE DB ##
-    final_ranking = search(queries, database, DIST_METRIC)
+    final_ranking = search(queries, database, DIST_METRIC, K)
     print('FINAL RANKING:')
     print(final_ranking)
 
     ## EVALUATION USING MAP@K ##
     if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qsd2_w1'  or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2':
         gt = pickle.load(open('../qs/' + QUERY_SET + '/gt_corresps.pkl','rb'))
-        mapk_ = ml_metrics.mapk(gt,final_ranking.tolist(),10)
+        mapk_ = ml_metrics.mapk(gt,final_ranking.tolist(),K)
         print('MAP@K = '+ str(mapk_))
     
     ## WRITE OUTPUT FILES ##
