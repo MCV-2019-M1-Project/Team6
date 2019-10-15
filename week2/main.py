@@ -4,6 +4,7 @@ import glob
 import pickle
 import ml_metrics
 import math
+import pandas as pd
 import os
 import yaml
 from evaluation_funcs import performance_accumulation_pixel 
@@ -27,6 +28,83 @@ BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
 
 ## FUNCTIONS ##
+def text_removal_mask(img, name, strel, strel_pdf, num_cols, coords):
+            
+    # Obtain image dimensions
+    height,width = img.shape[:2]
+    
+    # Create variable where final mask will be stored
+    f_mask = np.ones(shape=(height,width))
+    f_mask.fill(255)
+    
+    # Boundaries of the analyzed area
+    min_a = round(width/2)
+    max_a = round(min_a + num_cols)
+    # Store pixel values in the analyzed area
+    values_t = np.zeros(max_a-min_a)
+    
+    i = 0
+    
+    for p in range(min_a, max_a):
+        # Per each column, compute number of ocurrences of every pixel value
+        col = img[:,p]    
+        # Pixel values and number of ocurrences for the whole column
+        values = pd.Series(col).value_counts().keys().tolist()
+        # counts = pd.Series(col).value_counts().tolist()
+        # Get highest pixel value (most frequent one)
+        values_t[i] = values[0]
+        # counts_t[i] = counts[0]
+       
+        i += 1
+    
+    level = np.mean(values_t)
+    
+    if level < 128:
+        # Apply correspondent morphological operator according to level
+        final_img = cv.morphologyEx(img, cv.MORPH_OPEN, strel)
+         # Create mask to identify bounding box area
+        mask = (final_img != level)
+        mask = mask.astype(np.uint8)
+        mask *= 255
+    elif level > 128:
+        # Apply correspondent morphological operator according to level
+        final_img = cv.morphologyEx(img, cv.MORPH_CLOSE, strel)
+        # Create mask to identify bounding box area
+        mask = (final_img == level)
+        mask = mask.astype(np.uint8)
+        mask *= 255
+
+    # TODO: Mask post-processing with morphology
+    
+    # Find contours of created mask
+    contours,_ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    
+    for contour in contours:
+        # Find bounding box belonging to detected contour
+        (x,y,w,h) = cv.boundingRect(contour)
+        if w > 200:
+            # Draw bounding boxes coordinates on original image to visualize it
+            cv.rectangle(img, (x,y), (x+w,y+h), (0,255,0), 2)
+            
+            # Bboxes coordinates of the text positions
+            tlx = x
+            tly = y
+            brx = x + w
+            bry = y + h
+            
+            # Add bboxes coordinates to a list of lists
+            coords.append([(tlx,tly,brx,bry)])
+            
+            # Create new mask with bboxes coordinates
+            # Bboxes pixels are black (text), white otherwise (painting)
+            f_mask[y:y + h, x:x + w] = 0
+            cv.imwrite('results/'+ name + 'txtrmask.png', f_mask)
+    
+    if (np.count_nonzero(f_mask) == 0):
+        f_mask.fill(255)
+    
+    return f_mask
+
 def compute_mask(img,name):
     # METHOD 3 BASED ON MORPHOLOGY
     if(BG_REMOVAL==3):
@@ -264,10 +342,26 @@ def main():
     fscore = np.zeros(len(glob.glob(qs_l)))
     
     i=0
+    
+    # Text removal variables
+    # Structuring element
+    strel = np.ones((15,15), np.uint8)
+    
+    # Structuring element used after text removal
+    strel_pd = np.ones((20,20),np.uint8)
+    
+    # Number of columns considered from the center of the image towards the right
+    num_cols = 6
+    
+    # List to store detected bounding boxes coordinates
+    coords = []
+    
     for f in sorted(glob.glob(qs_l)):
         name = os.path.splitext(os.path.split(f)[1])[0]
         im = cv.imread(f, cv.IMREAD_COLOR)
         img = cv.cvtColor(im, COLORSPACE)
+        
+        # Query sets week 1
         if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1':
             mask = None
         elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1':
@@ -279,6 +373,11 @@ def main():
             precision[i] = eval_metrics[0]
             recall[i] = eval_metrics[3]
             fscore[i] = eval_metrics[4]
+        # Query sets week 2
+        elif QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2':
+            img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
+            mask = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords)
+            mask = mask.astype(np.uint8)
         i+=1
         queries.append(extract_features(img,mask))
     
@@ -288,13 +387,19 @@ def main():
         print('Recall: ' + str(np.mean(recall)))
         print('F-measure: ' + str(np.mean(fscore)))
 
+    if (QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2'):
+        print("Bounding boxes coordinates")
+        print(coords)
+        realcoords = pickle.load(open(QUERY_SET + '/text_boxes.pkl','rb'))
+        print(realcoords)
+        
     ## SEARCH FOR THE QUERIES IN THE DB ##
     final_ranking = search(queries, database, DIST_METRIC)
     print('FINAL RANKING:')
     print(final_ranking)
 
     ## EVALUATION USING MAP@K ##
-    if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qsd2_w1':
+    if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qsd2_w1'  or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2':
         gt = pickle.load(open('../qs/' + QUERY_SET + '/gt_corresps.pkl','rb'))
         mapk_ = ml_metrics.mapk(gt,final_ranking.tolist(),10)
         print('MAP@K = '+ str(mapk_))
