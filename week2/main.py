@@ -26,14 +26,6 @@ DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
 
-"""
-NBINS = 64 # Number of bins (from 0 to 255)
-COLORSPACE = cv.COLOR_BGR2Lab #BGR2YUV, BGR2HSV, BGR2Lab...
-DIST_METRIC="hellinger" #'euclidean' 'chisq' or 'hellinger'
-BG_REMOVAL = 1 # 1 or 2 bg removal method
-QUERY_SET='qst1_w1' # Input query set
-"""
-
 ## FUNCTIONS ##
 def compute_mask(img,name):
     # METHOD 3 BASED ON MORPHOLOGY
@@ -159,22 +151,25 @@ def extract_features(img,mask):
     # Level 0 histograms:
     hist_img = []
     npx = img.shape[0]*img.shape[1]
-    hist_1 = cv.calcHist([img],[0],None,[NBINS],[0,256])/npx 
-    hist_2 = cv.calcHist([img],[1],None,[NBINS],[0,256])/npx
-    hist_3 = cv.calcHist([img],[2],None,[NBINS],[0,256])/npx
+    hist_1 = cv.calcHist([img],[0],mask,[NBINS],[0,256])/npx 
+    hist_2 = cv.calcHist([img],[1],mask,[NBINS],[0,256])/npx
+    hist_3 = cv.calcHist([img],[2],mask,[NBINS],[0,256])/npx
     hists = np.concatenate((hist_1,hist_2,hist_3))
     hist_img.append(hists)
-    
+
     # Multilevel histograms
     for i in range(0,DIVISIONS):
         for j in range(0,DIVISIONS):
             # Compute the normalized histograms
             subimg = img[i*round(img.shape[0]/DIVISIONS):(i+1)*round(img.shape[0]/DIVISIONS)-1, 
                          j*round(img.shape[1]/DIVISIONS):(j+1)*round(img.shape[1]/DIVISIONS)-1]
+            if mask is not None :
+                mask = mask[i*round(img.shape[0]/DIVISIONS):(i+1)*round(img.shape[0]/DIVISIONS)-1, 
+                            j*round(img.shape[1]/DIVISIONS):(j+1)*round(img.shape[1]/DIVISIONS)-1]
             npx = subimg.shape[0]*subimg.shape[1]
-            hist_1 = cv.calcHist([subimg],[0],None,[NBINS/2],[0,256])/npx 
-            hist_2 = cv.calcHist([subimg],[1],None,[NBINS/2],[0,256])/npx
-            hist_3 = cv.calcHist([subimg],[2],None,[NBINS/2],[0,256])/npx
+            hist_1 = cv.calcHist([subimg],[0],mask,[NBINS],[0,256])/npx 
+            hist_2 = cv.calcHist([subimg],[1],mask,[NBINS],[0,256])/npx
+            hist_3 = cv.calcHist([subimg],[2],mask,[NBINS],[0,256])/npx
             hists = np.concatenate((hist_1,hist_2,hist_3))
             hist_img.append(hists)
     flat_list = []
