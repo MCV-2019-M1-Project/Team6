@@ -9,6 +9,7 @@ import os
 import yaml
 #from evaluation_funcs import performance_accumulation_pixel
 #from evaluation_funcs import performance_evaluation_pixel
+from bbox_iou import bbox_iou
 
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
@@ -30,10 +31,10 @@ QUERY_SET= cfg['queryset'] # Input query set
 K=3
 
 ## FUNCTIONS ##
-def text_removal_mask(img, name, strel, strel_pdf, num_cols, coords):
+def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
             
     # Obtain image dimensions
-    height,width = img.shape[:2]
+    height,width = img_gray.shape[:2]
     
     # Create variable where final mask will be stored
     f_mask = np.ones(shape=(height,width))
@@ -42,6 +43,7 @@ def text_removal_mask(img, name, strel, strel_pdf, num_cols, coords):
     # Boundaries of the analyzed area
     min_a = round(width/2)
     max_a = round(min_a + num_cols)
+    
     # Store pixel values in the analyzed area
     values_t = np.zeros(max_a-min_a)
     
@@ -49,63 +51,59 @@ def text_removal_mask(img, name, strel, strel_pdf, num_cols, coords):
     
     for p in range(min_a, max_a):
         # Per each column, compute number of ocurrences of every pixel value
-        col = img[:,p]    
+        col = img_gray[:,p]
+        
         # Pixel values and number of ocurrences for the whole column
         values = pd.Series(col).value_counts().keys().tolist()
-        # counts = pd.Series(col).value_counts().tolist()
+        
         # Get highest pixel value (most frequent one)
         values_t[i] = values[0]
-        # counts_t[i] = counts[0]
        
         i += 1
     
-    level = np.mean(values_t)
+    level = round(np.mean(values_t))
     
-    if level < 128:
-        # Apply correspondent morphological operator according to level
-        final_img = cv.morphologyEx(img, cv.MORPH_OPEN, strel)
-         # Create mask to identify bounding box area
+    if level < 150:
+        final_img = cv.morphologyEx(img_gray, cv.MORPH_OPEN, strel)
         mask = (final_img != level)
         mask = mask.astype(np.uint8)
         mask *= 255
-    elif level > 128:
-        # Apply correspondent morphological operator according to level
-        final_img = cv.morphologyEx(img, cv.MORPH_CLOSE, strel)
-        # Create mask to identify bounding box area
-        mask = (final_img >= level-3) * (final_img <= level+3)
-        mask = cv.morphologyEx(np.uint8(mask), cv.MORPH_CLOSE, np.ones((60,60),np.uint8))
-        mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((60,60),np.uint8))
+        mask = cv.bitwise_not(mask)
+    elif level > 150:
+        final_img = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, strel)
+        #mask = (final_img >= level-3) * (final_img <= level+3)
+        #mask = cv.morphologyEx(np.uint8(mask), cv.MORPH_CLOSE, np.ones((60,60),np.uint8))
+        #mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((60,60),np.uint8))
+        mask = (final_img == level)
+        mask = mask.astype(np.uint8)
         mask *= 255
 
-    # TODO: Mask post-processing with morphology (work on progress)
-
-    
     # Find contours of created mask
     contours,_ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
     
-    for contour in contours:
-        # Find bounding box belonging to detected contour
-        (x,y,w,h) = cv.boundingRect(contour)
-        if w > 200:
-            # Draw bounding boxes coordinates on original image to visualize it
-            cv.rectangle(img, (x,y), (x+w,y+h), (0,255,0), 2)
-            
-            # Bboxes coordinates of the text positions
-            tlx = x
-            tly = y
-            brx = x + w
-            bry = y + h
-            
-            # Add bboxes coordinates to a list of lists
-            coords.append([(tlx,tly,brx,bry)])
-            
-            # Create new mask with bboxes coordinates
-            # Bboxes pixels are black (text), white otherwise (painting)
-            f_mask[y:y + h, x:x + w] = 0
-            cv.imwrite('results/'+ name + 'txtrmask.png', f_mask)
+    # Find largest contour (it will contain the text bounding box)
+    contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
+    largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
     
-    if (np.count_nonzero(f_mask) == 0):
-        f_mask.fill(255)
+    # Find bounding box belonging to detected contour
+    (x,y,w,h) = cv.boundingRect(largest_contour)
+
+    # Draw bounding boxes coordinates on original image to visualize it
+    cv.rectangle(img_gray, (x,y), (x+w,y+h), (0,255,0), 2)
+    
+    # Bboxes coordinates of the text positions
+    tlx = x
+    tly = y
+    brx = x + w
+    bry = y + h
+    
+    # Add bboxes coordinates to a list of lists
+    coords.append([(tlx,tly,brx,bry)])
+
+    # Create new mask with bboxes coordinates
+    # Bboxes pixels are black (text), white otherwise (painting)
+    f_mask[y:y + h, x:x + w] = 0
+    cv.imwrite('results/'+ name + 'txtrmask.png', f_mask)
     
     return f_mask
 
@@ -344,6 +342,7 @@ def main():
     precision = np.zeros(len(glob.glob(qs_l)))
     recall = np.zeros(len(glob.glob(qs_l)))
     fscore = np.zeros(len(glob.glob(qs_l)))
+    iou = np.zeros(len(glob.glob(qs_l)))
     
     i=0
     
@@ -392,10 +391,14 @@ def main():
         print('F-measure: ' + str(np.mean(fscore)))
 
     if (QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2'):
-        print("Bounding boxes coordinates")
-        print(coords)
         realcoords = pickle.load(open(QUERY_SET + '/text_boxes.pkl','rb'))
-        print(realcoords)
+        i = 0
+        for i in range(0, len(realcoords)):
+            real = coords[i][0]
+            predicted = realcoords[i][0]
+            iou[i] = bbox_iou(real, predicted)
+            i += 1
+        print('Mean IOU: ' + str(np.mean(iou)))
         
     ## SEARCH FOR THE QUERIES IN THE DB ##
     final_ranking = search(queries, database, DIST_METRIC, K)
