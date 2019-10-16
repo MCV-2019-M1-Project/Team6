@@ -72,11 +72,13 @@ def text_removal_mask(img, name, strel, strel_pdf, num_cols, coords):
         # Apply correspondent morphological operator according to level
         final_img = cv.morphologyEx(img, cv.MORPH_CLOSE, strel)
         # Create mask to identify bounding box area
-        mask = (final_img == level)
-        mask = mask.astype(np.uint8)
+        mask = (final_img >= level-3) * (final_img <= level+3)
+        mask = cv.morphologyEx(np.uint8(mask), cv.MORPH_CLOSE, np.ones((60,60),np.uint8))
+        mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((60,60),np.uint8))
         mask *= 255
 
-    # TODO: Mask post-processing with morphology
+    # TODO: Mask post-processing with morphology (work on progress)
+
     
     # Find contours of created mask
     contours,_ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
