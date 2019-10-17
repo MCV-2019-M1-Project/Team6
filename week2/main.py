@@ -28,7 +28,7 @@ DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
 
-K=3
+K=10
 
 ## FUNCTIONS ##
 def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
@@ -237,6 +237,12 @@ def extract_features(img,mask):
 
 #Extracts feature vector from image. The returned vecor consists of the 1D histograms of
 # each of the image channels concatenated.
+    
+    # Mask preprocessing
+    if mask is not None:
+        indices = np.where(mask != [0])
+        img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+        mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
 
     # Level 0 histograms:
     hist_img = []
