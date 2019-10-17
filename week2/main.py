@@ -10,7 +10,7 @@ import yaml
 #from evaluation_funcs import performance_accumulation_pixel
 #from evaluation_funcs import performance_evaluation_pixel
 from bbox_iou import bbox_iou
-#########hola
+
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
     cfg = yaml.safe_load(ymlfile)
