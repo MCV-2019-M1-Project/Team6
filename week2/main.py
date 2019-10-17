@@ -45,7 +45,7 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
     max_a = round(min_a + num_cols)
     
     # Store pixel values in the analyzed area
-    values_t = np.zeros(max_a-min_a)
+    values_t = np.zeros(shape=(max_a-min_a, max_a-min_a))
     
     i = 0
     
@@ -56,53 +56,63 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
         # Pixel values and number of ocurrences for the whole column
         values = pd.Series(col).value_counts().keys().tolist()
         
-        # Get highest pixel value (most frequent one)
-        values_t[i] = values[0]
-               
+        # Get highest pixel values (most frequent ones)
+        values_t[0:3,i] = values[0:3]
+
         i += 1
-    
-    level = round(np.mean(values_t))
-    
-    if level < 150:
-        final_img = cv.morphologyEx(img_gray, cv.MORPH_OPEN, strel)
-        mask = (final_img != level)
-        mask = mask.astype(np.uint8)
-        mask *= 255
-        mask = cv.bitwise_not(mask)
-    elif level > 150:
-        final_img = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, strel)
-        #mask = (final_img >= level-3) * (final_img <= level+3)
-        #mask = cv.morphologyEx(np.uint8(mask), cv.MORPH_CLOSE, np.ones((60,60),np.uint8))
-        #mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((60,60),np.uint8))
-        mask = (final_img == level)
-        mask = mask.astype(np.uint8)
-        mask *= 255
 
-    # Find contours of created mask
-    contours,_ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-    
-    # Find largest contour (it will contain the text bounding box)
-    contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
-    largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
-    
-    # Find bounding box belonging to detected contour
-    (x,y,w,h) = cv.boundingRect(largest_contour)
+    j = 0
+    black_pixels = 0
+    while(black_pixels < 5000 and j < num_cols):
 
-    # Draw bounding boxes coordinates on original image to visualize it
-    cv.rectangle(img_gray, (x,y), (x+w,y+h), (0,255,0), 2)
-    
-    # Bboxes coordinates of the text positions
-    tlx = x
-    tly = y
-    brx = x + w
-    bry = y + h
-    
+        level = round(np.mean(values_t[j,:]))
+        
+        if level <= 150:
+            final_img = cv.morphologyEx(img_gray, cv.MORPH_OPEN, strel)
+            mask = (final_img != level)
+            mask = mask.astype(np.uint8)
+            mask *= 255
+            mask = cv.bitwise_not(mask)
+        elif level > 150:
+            final_img = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, strel)
+            mask = (final_img >= level-3) * (final_img <= level+3)
+            #mask = cv.morphologyEx(np.uint8(mask), cv.MORPH_CLOSE, np.ones((60,60),np.uint8))
+            #mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((60,60),np.uint8))
+            #mask = (final_img == level)
+            mask = mask.astype(np.uint8)
+            mask *= 255
+
+        # Find contours of created mask
+        contours,_ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+        
+        # Find largest contour (it will contain the text bounding box)
+        contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
+        largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
+        
+        # Find bounding box belonging to detected contour
+        (x,y,w,h) = cv.boundingRect(largest_contour)
+
+        # Draw bounding boxes coordinates on original image to visualize it
+        cv.rectangle(img_gray, (x,y), (x+w,y+h), (0,255,0), 2)
+        
+        # Bboxes coordinates of the text positions
+        tlx = x
+        tly = y
+        brx = x + w
+        bry = y + h
+
+        # Extract bounding boxes pixels 
+        black_pixels = w*h
+
+        j+=1
+
     # Add bboxes coordinates to a list of lists
     coords.append([(tlx,tly,brx,bry)])
 
     # Create new mask with bboxes coordinates
     # Bboxes pixels are black (text), white otherwise (painting)
     f_mask[y:y + h, x:x + w] = 0
+
     cv.imwrite('results/'+ name + 'txtrmask.png', f_mask)
     
     return f_mask, coords
@@ -356,7 +366,7 @@ def main():
     strel_pd = np.ones((20,20),np.uint8)
     
     # Number of columns considered from the center of the image towards the right
-    num_cols = 6
+    num_cols = 10
     
     # List to store detected bounding boxes coordinates
     coords = []
