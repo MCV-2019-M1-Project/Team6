@@ -58,7 +58,7 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
         
         # Get highest pixel value (most frequent one)
         values_t[i] = values[0]
-       
+               
         i += 1
     
     level = round(np.mean(values_t))
@@ -105,7 +105,7 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
     f_mask[y:y + h, x:x + w] = 0
     cv.imwrite('results/'+ name + 'txtrmask.png', f_mask)
     
-    return f_mask
+    return f_mask, coords
 
 def compute_mask(img,name):
     # METHOD 3 BASED ON MORPHOLOGY
@@ -381,7 +381,7 @@ def main():
         # Query sets week 2
         elif QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2':
             img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-            mask = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords)
+            mask, pred_coords = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords)
             mask = mask.astype(np.uint8)
         i+=1
         queries.append(extract_features(img,mask))
@@ -401,7 +401,12 @@ def main():
             iou[i] = bbox_iou(real, predicted)
             i += 1
         print('Mean IOU: ' + str(np.mean(iou)))
-        
+
+        ## WRITE PREDICTED BOUNDING BOXES ##
+        pickle.dump(pred_coords, open('../qs/' + QUERY_SET + '/pred_bboxes.pkl','wb'))
+
+
+
     ## SEARCH FOR THE QUERIES IN THE DB ##
     final_ranking = search(queries, database, DIST_METRIC, K)
     print('FINAL RANKING:')
