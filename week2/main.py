@@ -7,8 +7,8 @@ import math
 import pandas as pd
 import os
 import yaml
-#from evaluation_funcs import performance_accumulation_pixel
-#from evaluation_funcs import performance_evaluation_pixel
+from evaluation_funcs import performance_accumulation_pixel
+from evaluation_funcs import performance_evaluation_pixel
 from bbox_iou import bbox_iou
 
 ## PARAMETERS ##
@@ -244,12 +244,14 @@ def extract_features(img,mask):
             subimg = img[i*round(img.shape[0]/DIVISIONS):(i+1)*round(img.shape[0]/DIVISIONS)-1, 
                          j*round(img.shape[1]/DIVISIONS):(j+1)*round(img.shape[1]/DIVISIONS)-1]
             if mask is not None :
-                mask = mask[i*round(img.shape[0]/DIVISIONS):(i+1)*round(img.shape[0]/DIVISIONS)-1, 
+                submask = mask[i*round(img.shape[0]/DIVISIONS):(i+1)*round(img.shape[0]/DIVISIONS)-1, 
                             j*round(img.shape[1]/DIVISIONS):(j+1)*round(img.shape[1]/DIVISIONS)-1]
+            else :
+                submask = None
             npx = subimg.shape[0]*subimg.shape[1]
-            hist_1 = cv.calcHist([subimg],[0],mask,[NBINS],[0,256])/npx 
-            hist_2 = cv.calcHist([subimg],[1],mask,[NBINS],[0,256])/npx
-            hist_3 = cv.calcHist([subimg],[2],mask,[NBINS],[0,256])/npx
+            hist_1 = cv.calcHist([subimg],[0],submask,[NBINS],[0,256])/npx 
+            hist_2 = cv.calcHist([subimg],[1],submask,[NBINS],[0,256])/npx
+            hist_3 = cv.calcHist([subimg],[2],submask,[NBINS],[0,256])/npx
             hists = np.concatenate((hist_1,hist_2,hist_3))
             hist_img.append(hists)
     flat_list = []
