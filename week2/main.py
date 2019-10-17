@@ -7,8 +7,8 @@ import math
 import pandas as pd
 import os
 import yaml
-#from evaluation_funcs import performance_accumulation_pixel
-#from evaluation_funcs import performance_evaluation_pixel
+from evaluation_funcs import performance_accumulation_pixel
+from evaluation_funcs import performance_evaluation_pixel
 from bbox_iou import bbox_iou
 
 ## PARAMETERS ##
@@ -28,7 +28,7 @@ DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
 
-K=3
+K=10
 
 ## FUNCTIONS ##
 def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
@@ -58,7 +58,7 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
         
         # Get highest pixel value (most frequent one)
         values_t[i] = values[0]
-       
+               
         i += 1
     
     level = round(np.mean(values_t))
@@ -105,7 +105,7 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
     f_mask[y:y + h, x:x + w] = 0
     cv.imwrite('results/'+ name + 'txtrmask.png', f_mask)
     
-    return f_mask
+    return f_mask, coords
 
 def compute_mask(img,name):
     # METHOD 3 BASED ON MORPHOLOGY
@@ -227,6 +227,12 @@ def extract_features(img,mask):
 
 #Extracts feature vector from image. The returned vecor consists of the 1D histograms of
 # each of the image channels concatenated.
+    
+    # Mask preprocessing
+    if mask is not None:
+        indices = np.where(mask != [0])
+        img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+        mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
 
     # Level 0 histograms:
     hist_img = []
@@ -244,12 +250,14 @@ def extract_features(img,mask):
             subimg = img[i*round(img.shape[0]/DIVISIONS):(i+1)*round(img.shape[0]/DIVISIONS)-1, 
                          j*round(img.shape[1]/DIVISIONS):(j+1)*round(img.shape[1]/DIVISIONS)-1]
             if mask is not None :
-                mask = mask[i*round(img.shape[0]/DIVISIONS):(i+1)*round(img.shape[0]/DIVISIONS)-1, 
+                submask = mask[i*round(img.shape[0]/DIVISIONS):(i+1)*round(img.shape[0]/DIVISIONS)-1, 
                             j*round(img.shape[1]/DIVISIONS):(j+1)*round(img.shape[1]/DIVISIONS)-1]
+            else :
+                submask = None
             npx = subimg.shape[0]*subimg.shape[1]
-            hist_1 = cv.calcHist([subimg],[0],mask,[NBINS],[0,256])/npx 
-            hist_2 = cv.calcHist([subimg],[1],mask,[NBINS],[0,256])/npx
-            hist_3 = cv.calcHist([subimg],[2],mask,[NBINS],[0,256])/npx
+            hist_1 = cv.calcHist([subimg],[0],submask,[NBINS],[0,256])/npx 
+            hist_2 = cv.calcHist([subimg],[1],submask,[NBINS],[0,256])/npx
+            hist_3 = cv.calcHist([subimg],[2],submask,[NBINS],[0,256])/npx
             hists = np.concatenate((hist_1,hist_2,hist_3))
             hist_img.append(hists)
     flat_list = []
@@ -379,7 +387,7 @@ def main():
         # Query sets week 2
         elif QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2':
             img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-            mask = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords)
+            mask, pred_coords = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords)
             mask = mask.astype(np.uint8)
         i+=1
         queries.append(extract_features(img,mask))
@@ -399,7 +407,12 @@ def main():
             iou[i] = bbox_iou(real, predicted)
             i += 1
         print('Mean IOU: ' + str(np.mean(iou)))
-        
+
+        ## WRITE PREDICTED BOUNDING BOXES ##
+        pickle.dump(pred_coords, open('../qs/' + QUERY_SET + '/pred_bboxes.pkl','wb'))
+
+
+
     ## SEARCH FOR THE QUERIES IN THE DB ##
     final_ranking = search(queries, database, DIST_METRIC, K)
     print('FINAL RANKING:')
