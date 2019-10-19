@@ -1,0 +1,10 @@
+qsd2_w1: MAP@10 = 0.7222222222222221
+qsd1_w2: MAP@10 = 0.8537037037037037
+qsd2_w2: MAP@10 = 0.5444444444444444
+
+	nbins: 64                      # Number of bins (from 1 to 256)
+	divs: 10                       # Number of horizontal and vertical divisions
+	colorspace: LAB                # YUV, LAB or HSV
+	dist: hellinger                #'euclidean' 'chisq' or 'hellinger'
+	bgrm: 3                        # 1, 2 or 3 bg removal method
+	queryset: qsd1_w2      
