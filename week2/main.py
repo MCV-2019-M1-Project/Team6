@@ -67,18 +67,14 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
 
         level = round(np.mean(values_t[j,:]))
         
-        if level <= 150:
+        if level <= 128:
             final_img = cv.morphologyEx(img_gray, cv.MORPH_OPEN, strel)
-            mask = (final_img != level)
+            mask = (final_img >= max(0,level-3)) * (final_img <= level+3)
             mask = mask.astype(np.uint8)
             mask *= 255
-            mask = cv.bitwise_not(mask)
-        elif level > 150:
+        elif level > 128:
             final_img = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, strel)
-            mask = (final_img >= level-3) * (final_img <= level+3)
-            #mask = cv.morphologyEx(np.uint8(mask), cv.MORPH_CLOSE, np.ones((60,60),np.uint8))
-            #mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((60,60),np.uint8))
-            #mask = (final_img == level)
+            mask = (final_img >= max(0,level-3)) * (final_img <= level+3)
             mask = mask.astype(np.uint8)
             mask *= 255
 
