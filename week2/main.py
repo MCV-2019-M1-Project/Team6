@@ -28,7 +28,7 @@ DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
 
-K=10
+K=3
 
 ## FUNCTIONS ##
 def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
@@ -62,23 +62,22 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
         i += 1
 
     j = 0
+    w = 0
+    h = 0
     black_pixels = 0
-    while(black_pixels < 5000 and j < num_cols):
+    while((w*h < 20000 or w*h > 1000000 or w<h) and j < 3):
 
         level = round(np.mean(values_t[j,:]))
         
-        if level <= 150:
+        if level <= 128:
             final_img = cv.morphologyEx(img_gray, cv.MORPH_OPEN, strel)
-            mask = (final_img != level)
+            mask = (final_img >= level-1) * (final_img <= level+1)
             mask = mask.astype(np.uint8)
             mask *= 255
-            mask = cv.bitwise_not(mask)
-        elif level > 150:
+
+        elif level > 128:
             final_img = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, strel)
-            mask = (final_img >= level-3) * (final_img <= level+3)
-            #mask = cv.morphologyEx(np.uint8(mask), cv.MORPH_CLOSE, np.ones((60,60),np.uint8))
-            #mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((60,60),np.uint8))
-            #mask = (final_img == level)
+            mask = (final_img >= level-1) * (final_img <= level+1)
             mask = mask.astype(np.uint8)
             mask *= 255
 
@@ -372,7 +371,7 @@ def main():
     strel_pd = np.ones((20,20),np.uint8)
     
     # Number of columns considered from the center of the image towards the right
-    num_cols = 10
+    num_cols = 6
     
     # List to store detected bounding boxes coordinates
     coords = []
@@ -417,6 +416,7 @@ def main():
             iou[i] = bbox_iou(real, predicted)
             i += 1
         print('Mean IOU: ' + str(np.mean(iou)))
+        print(iou)
 
         ## WRITE PREDICTED BOUNDING BOXES ##
         pickle.dump(pred_coords, open('../qs/' + QUERY_SET + '/pred_bboxes.pkl','wb'))
