@@ -57,13 +57,14 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
         values = pd.Series(col).value_counts().keys().tolist()
         
         # Get highest pixel values (most frequent ones)
-        values_t[0:3,i] = values[0:3]
+        values_t[0:4,i] = values[0:4]
 
         i += 1
 
     j = 0
-    w= 0
-    h=0
+    w = 0
+    h = 0
+
     while((w*h < 20000 or w*h > 1000000 or w<h) and j < num_cols):
 
         level = round(np.mean(values_t[j,:]))
