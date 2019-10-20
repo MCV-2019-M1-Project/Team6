@@ -37,8 +37,9 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
     height,width = img_gray.shape[:2]
     
     c=[]
-    
-    for picture in range(len(background_mask)):
+    length = np.shape(background_mask)[0]
+
+    for picture in range(length):
         # Create variable where final mask will be stored
         f_mask = np.ones(shape=(height,width))
         f_mask.fill(255)
@@ -113,7 +114,7 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
         # Add bboxes coordinates to a list of lists
         if QUERY_SET != 'qsd2_w2' and QUERY_SET != 'qst2_w2':
             coords.append([(tlx,tly,brx,bry)])
-        elif picture < len(background_mask)-1:
+        elif picture < length-1:
             c.append([(tlx,tly,brx,bry)])
         else:
             c.append([(tlx,tly,brx,bry)])
@@ -266,9 +267,12 @@ def compute_mask(img,name):
         mask_right[:,0:central_column] = 0
         mask_left = mask_left*mask
         mask_right = mask_right*mask
-        mask = [mask_left, mask_right]        
+        bg_mask = [mask_left, mask_right]     
+   
+    else:
+         bg_mask=[[mask]] 
 
-    return mask, eval_metrics
+    return bg_mask, eval_metrics
 
 def extract_features(img,mask):
 
