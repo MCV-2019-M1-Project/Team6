@@ -7,6 +7,7 @@ import math
 import pandas as pd
 import os
 import yaml
+from matplotlib import pyplot as plt 
 from evaluation_funcs import performance_accumulation_pixel
 from evaluation_funcs import performance_evaluation_pixel
 from bbox_iou import bbox_iou
@@ -489,10 +490,15 @@ def main():
   
         # Iterate the masks (1 or 2 according to the images)
         query_data = []
+        
+        length = np.shape(mask)[0]
+        if length > 2:
+            length = 1
+            mask = [mask]     
 
-        for m in range(np.shape(mask)[0]):
-            query_data.append(extract_features(im,m))
-
+        for m in range(length):
+            print(length)
+            query_data.append(extract_features(im,mask[m]))
         queries.append(query_data)
 
         #queries.append(extract_features(img,mask))
