@@ -31,7 +31,7 @@ QUERY_SET= cfg['queryset'] # Input query set
 K = 3
 
 ## FUNCTIONS ##
-def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
+def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, background_mask):
             
     # Obtain image dimensions
     height,width = img_gray.shape[:2]
@@ -411,23 +411,29 @@ def main():
         im = cv.imread(f, cv.IMREAD_COLOR)
         img = cv.cvtColor(im, COLORSPACE)
         
-        # Query sets week 1
-        if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1':
-            mask = None
+        # NO BACKGROUND
+        if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1' or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2':
+            bg_mask = None
+        # BACKGROUND REMOVAL
         elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1' or QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qst2_w2':
             if BG_REMOVAL==3:
                 img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-                mask, eval_metrics = compute_mask(img_gray,name)
+                bg_mask, eval_metrics = compute_mask(img_gray,name)
             else:
-                mask, eval_metrics = compute_mask(img,name)
+                bg_mask, eval_metrics = compute_mask(img,name)
             precision[i] = eval_metrics[0]
             recall[i] = eval_metrics[3]
             fscore[i] = eval_metrics[4]
-        # Query sets week 2
-        elif QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2':
+        
+        # TEXT REMOVAL
+        if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2' or QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qst2_w2':
             img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-            mask, pred_coords = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords)
+            # Use the mask created (image without background) to indicate search text
+            mask, pred_coords = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, bg_mask)
             mask = mask.astype(np.uint8)
+        else:
+            mask = bg_mask
+
         i+=1
 
         '''
@@ -438,7 +444,7 @@ def main():
 
         queries.append(query_data)
         '''
-        queries.append(queries)
+        queries.append(extract_features(img,mask))
 
     if QUERY_SET == 'qsd2_w1':
         print('Query set has ' + str(len(queries)) + ' images')
