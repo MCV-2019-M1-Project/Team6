@@ -1,5 +1,5 @@
-nbins: 64                      # Number of bins (from 1 to 256)
-divs: 10                       # Number of horizontal and vertical divisions
+nbins: 10                      # Number of bins (from 1 to 256)
+divs: 2                       # Number of horizontal and vertical divisions
 colorspace: LAB                # YUV, LAB or HSV
 dist: hellinger                #'euclidean' 'chisq' or 'hellinger'
 bgrm: 3                        # 1, 2 or 3 bg removal method
