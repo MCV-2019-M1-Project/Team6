@@ -313,9 +313,9 @@ def extract_features(img,mask):
     # Mask preprocessing
     if mask is not None:
         indices = np.where(mask != [0])
-        #if(indices[0].size != 0 and indices[1].size !=0):
-        img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
-        mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+        if(indices[0].size != 0 and indices[1].size !=0):
+            img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+            mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
 
     # Level 0 histograms:
     hist_img = []
@@ -480,8 +480,8 @@ def main():
             img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
             # Use the mask created (image without background) to indicate search text
             mask, pred_coords = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, bg_mask)
-            for m in range(np.shape(mask)[0]):
-                mask = mask[m].astype(np.uint8)
+            #for m in range(np.shape(mask)[0]):
+                #mask = mask[m].astype(np.uint8)
         else:
             mask = [bg_mask]
 
@@ -497,8 +497,7 @@ def main():
             mask = [mask]     
 
         for m in range(length):
-            print(length)
-            query_data.append(extract_features(im,mask[m]))
+            query_data.append(extract_features(im,mask[m].astype(np.uint8)))
         queries.append(query_data)
 
         #queries.append(extract_features(img,mask))
