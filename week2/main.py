@@ -39,22 +39,25 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
     c=[]
     length = np.shape(background_mask)[0]
 
+    # Create variable where final mask will be stored
+    f_mask = np.ones(shape=(height,width))
+
     for picture in range(length):
-        # Create variable where final mask will be stored
-        f_mask = np.ones(shape=(height,width))
-        f_mask.fill(255)
         
         # Boundaries of the analyzed area
-        columns = background_mask.sum(axis=0) 
-        min_a = round((np.argmax(columns!=0)+np.argmin(columns!=0))/2)
+        columns = np.array(background_mask[picture]).sum(axis=0)
+        non_zero = np.nonzero(columns)
+        non_zero = np.array(non_zero[0])
+
+        min_a = round((non_zero[0] + non_zero[len(non_zero)-1])/2)
         max_a = round(min_a + num_cols)
 
         # Store pixel values in the analyzed area
-        values_t = np.zeros(shape=(max_a-min_a, max_a-min_a))
+        values_t = np.zeros(shape=(int(max_a-min_a), int(max_a-min_a)))
         
         i = 0
         
-        for p in range(min_a, max_a):
+        for p in range(int(min_a), int(max_a)):
             # Per each column, compute number of ocurrences of every pixel value
             col = img_gray[:,p]
             
@@ -111,18 +114,24 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
                 bry = y + h
             j+=1
 
+        background_mask[picture][y:y + h, x:x + w] = 0
         # Add bboxes coordinates to a list of lists
         if QUERY_SET != 'qsd2_w2' and QUERY_SET != 'qst2_w2':
             coords.append([(tlx,tly,brx,bry)])
+            f_mask = background_mask[picture]
         elif picture < length-1:
             c.append([(tlx,tly,brx,bry)])
+            f_mask = background_mask[picture]
         else:
+            f_mask += background_mask[picture]
             c.append([(tlx,tly,brx,bry)])
             coords.append([c])
 
         # Create new mask with bboxes coordinates
         # Bboxes pixels are black (text), white otherwise (painting)
-        f_mask[y:y + h, x:x + w] = 0
+
+        #f_mask[y:y + h, x:x + w] = 0
+        #f_mask = f_mask + background_mask[picture]
 
     cv.imwrite('results/'+ name + 'txtrmask.png', f_mask)
     
@@ -270,7 +279,7 @@ def compute_mask(img,name):
         bg_mask = [mask_left, mask_right]     
    
     else:
-         bg_mask=[[mask]] 
+         bg_mask= [mask]
 
     return bg_mask, eval_metrics
 
