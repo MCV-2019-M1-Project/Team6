@@ -37,6 +37,7 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
     height,width = img_gray.shape[:2]
     
     c=[]
+
     length = np.shape(background_mask)[0]
 
     # Create variable where final mask will be stored
@@ -56,13 +57,20 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
 
             # Store pixel values in the analyzed area
             values_t = np.zeros(shape=(int(max_a-min_a), int(max_a-min_a)))
-        
+        else:
+            min_a = width/2
+            max_a = min_a + num_cols
+
         non_zero_row = np.nonzero(rows)
         non_zero_row = np.array(non_zero_row[0])
 
         if non_zero_row != []:
             min_h = non_zero_row[0]
             max_h = non_zero_row[len(non_zero_row)-1]
+        else:
+            min_h = 0
+            max_h = height - 1
+                
         i = 0
 
         
@@ -486,11 +494,12 @@ def main():
         realcoords = pickle.load(open(QUERY_SET + '/text_boxes.pkl','rb'))
         i = 0
         for i in range(0, len(realcoords)):
-            real = coords[i][0]
-            predicted = realcoords[i][0]
+            predicted = coords[i][0]
+            real = realcoords[i][0]
             iou[i] = bbox_iou(real, predicted)
             i += 1
         print('Mean IOU: ' + str(np.mean(iou)))
+        print(predicted)
 
         ## WRITE PREDICTED BOUNDING BOXES ##
         pickle.dump(pred_coords, open('../qs/' + QUERY_SET + '/pred_bboxes.pkl','wb'))
