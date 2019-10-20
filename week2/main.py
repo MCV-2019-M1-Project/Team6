@@ -46,20 +46,28 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
         
         # Boundaries of the analyzed area
         columns = np.array(background_mask[picture]).sum(axis=0)
-        non_zero = np.nonzero(columns)
-        non_zero = np.array(non_zero[0])
+        rows = np.array(background_mask[picture]).sum(axis=1)
+        non_zero_col = np.nonzero(columns)
+        non_zero_col = np.array(non_zero_col[0])
 
-        min_a = round((non_zero[0] + non_zero[len(non_zero)-1])/2)
-        max_a = round(min_a + num_cols)
+        if non_zero_col != []:
+            min_a = round((non_zero_col[0] + non_zero_col[len(non_zero_col)-1])/2)
+            max_a = round(min_a + num_cols)
 
-        # Store pixel values in the analyzed area
-        values_t = np.zeros(shape=(int(max_a-min_a), int(max_a-min_a)))
+            # Store pixel values in the analyzed area
+            values_t = np.zeros(shape=(int(max_a-min_a), int(max_a-min_a)))
         
+        non_zero_row = np.nonzero(rows)
+        non_zero_row = np.array(non_zero_row[0])
+
+        min_h = non_zero_row[0]
+        max_h = non_zero_row[len(non_zero_row)-1]
         i = 0
+
         
         for p in range(int(min_a), int(max_a)):
             # Per each column, compute number of ocurrences of every pixel value
-            col = img_gray[:,p]
+            col = img_gray[min_h:max_h,p]
             
             # Pixel values and number of ocurrences for the whole column
             values = pd.Series(col).value_counts().keys().tolist()
