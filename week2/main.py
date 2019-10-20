@@ -41,7 +41,8 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
     length = np.shape(background_mask)[0]
 
     # Create variable where final mask will be stored
-    f_mask = np.ones(shape=(height,width))
+    #f_mask = np.ones(shape=(height,width))
+    f_mask = []
 
     for picture in range(length):
         
@@ -132,15 +133,17 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
             j+=1
 
         background_mask[picture][y:y + h, x:x + w] = 0
+        cv.imwrite('results/'+ name + picture + 'txtrmask.png', background_mask[picture])
+        
         # Add bboxes coordinates to a list of lists
         if QUERY_SET != 'qsd2_w2' and QUERY_SET != 'qst2_w2':
             coords.append([(tlx,tly,brx,bry)])
-            f_mask = background_mask[picture]
+            f_mask.append(background_mask[picture])
         elif picture < length-1:
             c.append([(tlx,tly,brx,bry)])
-            f_mask = background_mask[picture]
+            f_mask.append(background_mask[picture])
         else:
-            f_mask += background_mask[picture]
+            f_mask.append(background_mask[picture])
             c.append([(tlx,tly,brx,bry)])
             coords.append([c])
 
@@ -150,8 +153,6 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
         #f_mask[y:y + h, x:x + w] = 0
         #f_mask = f_mask + background_mask[picture]
 
-    cv.imwrite('results/'+ name + 'txtrmask.png', f_mask)
-    
     return f_mask, coords
 
 def compute_mask(img,name):
@@ -474,15 +475,16 @@ def main():
 
         i+=1
 
-        '''
+  
         # Iterate the masks (1 or 2 according to the images)
         query_data = []
-        for m in mask:
-            query_data.append(extract_features(img,m))
+
+        for m in np.shape(bg_mask)[0]:
+            query_data.append(bg_mask(im,m))
 
         queries.append(query_data)
-        '''
-        queries.append(extract_features(img,mask))
+
+        #queries.append(extract_features(img,mask))
 
     if QUERY_SET == 'qsd2_w1':
         print('Query set has ' + str(len(queries)) + ' images')
