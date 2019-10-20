@@ -251,23 +251,26 @@ def compute_mask(img,name):
     # Save mask
     cv.imwrite('masks/' + name + '.png', mask)
     
-    # Read ground truth
-    g_t = cv.imread('../qs/' + QUERY_SET + '/' + name + '.png', cv.IMREAD_COLOR)
-    g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
-    
-    # Compute evaluation metrics
-    pixelTP, pixelFP, pixelFN, pixelTN = performance_accumulation_pixel(mask,g_t)
-    pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
-    F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
-    
-    eval_metrics = [pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity, F1]
-    '''
-    print("Precision: "+str(pixel_precision))
-    print("Accuracy: "+str(pixel_accuracy))
-    print("Specificity: "+str(pixel_specificity))
-    print("Recall (sensitivity): "+str(pixel_sensitivity))
-    print("F1: "+str(F1))
-    '''
+    if (QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2'):
+        # Read ground truth
+        g_t = cv.imread('../qs/' + QUERY_SET + '/' + name + '.png', cv.IMREAD_COLOR)
+        g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
+        
+        # Compute evaluation metrics
+        pixelTP, pixelFP, pixelFN, pixelTN = performance_accumulation_pixel(mask,g_t)
+        pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
+        F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
+        
+        eval_metrics = [pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity, F1]
+        '''
+        print("Precision: "+str(pixel_precision))
+        print("Accuracy: "+str(pixel_accuracy))
+        print("Specificity: "+str(pixel_specificity))
+        print("Recall (sensitivity): "+str(pixel_sensitivity))
+        print("F1: "+str(F1))
+        '''
+    else:
+        eval_metrics = [0,0,0,0,0]
 
     # DETECT IF THERE ARE TWO IMAGES
     # First method: check if the central mask is black
@@ -309,9 +312,9 @@ def extract_features(img,mask):
     # Mask preprocessing
     if mask is not None:
         indices = np.where(mask != [0])
-        if(indices[0].size != 0 and indices[1].size !=0):
-            img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
-            mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+        #if(indices[0].size != 0 and indices[1].size !=0):
+        img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+        mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
 
     # Level 0 histograms:
     hist_img = []
@@ -455,7 +458,7 @@ def main():
         if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1' or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2':
             bg_mask = None
         # BACKGROUND REMOVAL
-        elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1' or QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qst2_w2':
+        elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1' or QUERY_SET == 'qsd2_w2':
             if BG_REMOVAL==3:
                 img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
                 bg_mask, eval_metrics = compute_mask(img_gray,name)
@@ -464,6 +467,12 @@ def main():
             precision[i] = eval_metrics[0]
             recall[i] = eval_metrics[3]
             fscore[i] = eval_metrics[4]
+        elif QUERY_SET == 'qst2_w2':
+            if BG_REMOVAL==3:
+                img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
+                bg_mask, eval_metrics = compute_mask(img_gray,name)
+            else:
+                bg_mask,_eval_metrics = compute_mask(img,name)
         
         # TEXT REMOVAL
         if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2' or QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qst2_w2':
