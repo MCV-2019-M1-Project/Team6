@@ -118,6 +118,8 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
     return f_mask, coords
 
 def compute_mask(img,name):
+    height, width = np.shape(img)
+
     # METHOD 3 BASED ON MORPHOLOGY
     if(BG_REMOVAL==3):
         # Compute morphological gradient by dilation (keep inner edges to remove wall posters)
@@ -135,7 +137,7 @@ def compute_mask(img,name):
         cv.drawContours(img_contour, contours, -1, 255, -1)
         
         # Opening to remove wall posters
-        kernel = np.ones((100,100),np.uint8)
+        kernel = np.ones((100,200),np.uint8)
         mask = cv.morphologyEx(img_contour, cv.MORPH_OPEN, kernel)
 
         # Avoid all zeros image
@@ -148,9 +150,6 @@ def compute_mask(img,name):
         c0 = img[:,:,0]
         c1 = img[:,:,1]
         c2 = img[:,:,2]
-        
-        # Height and width of channel (=image dims)
-        height,width = c0.shape[:2]
             
         # Percentage defining number of pixels per every portion of the image
         percent_c0 = 0.02
@@ -231,6 +230,34 @@ def compute_mask(img,name):
     print("Recall (sensitivity): "+str(pixel_sensitivity))
     print("F1: "+str(F1))
     '''
+
+    # DETECT IF THERE ARE TWO IMAGES
+    # First method: check if the central mask is black
+    central_column = round(width/2)
+    central_column_mean = np.mean(mask[:,central_column:central_column+1])
+    
+    # If central column is not zero, analyze some extra columns
+    # From 0.25 to 0.75 of the image, with a step of 100px
+    if central_column_mean != 0:
+        for i in range(round(0.5*(width/2)), round(1.5*(width/2)), 100):
+            central_column_mean = np.mean(mask[:,i:i+1])
+            if (central_column_mean == 0): # If found, exit for and keep central_column
+                central_column = i
+                break
+
+    # If after the second attempt two masks are detected 
+    if central_column_mean == 0:
+        # Generate white masks
+        mask_left = np.ones((height,width),np.uint8)
+        mask_right = np.ones((height,width),np.uint8)
+        
+        # Compute
+        mask_left[:,central_column:width] = 0
+        mask_right[:,0:central_column] = 0
+        mask_left = mask_left*mask
+        mask_right = mask_right*mask
+        mask = [mask_left, mask_right]        
+    
     return mask, eval_metrics
 
 def extract_features(img,mask):
@@ -385,7 +412,7 @@ def main():
         # Query sets week 1
         if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1':
             mask = None
-        elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1':
+        elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1' or QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qst2_w2':
             if BG_REMOVAL==3:
                 img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
                 mask, eval_metrics = compute_mask(img_gray,name)
@@ -395,11 +422,16 @@ def main():
             recall[i] = eval_metrics[3]
             fscore[i] = eval_metrics[4]
         # Query sets week 2
-        elif QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2':
+        elif QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2':
             img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
             mask, pred_coords = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords)
             mask = mask.astype(np.uint8)
         i+=1
+
+        # TODO!!!!
+        for m in mask:
+            extract_features(img,m)
+
         queries.append(extract_features(img,mask))
     
     if QUERY_SET == 'qsd2_w1':
