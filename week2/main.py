@@ -28,7 +28,7 @@ DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
 
-K=10
+K = 3
 
 ## FUNCTIONS ##
 def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
@@ -57,52 +57,54 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
         values = pd.Series(col).value_counts().keys().tolist()
         
         # Get highest pixel values (most frequent ones)
-        values_t[0:3,i] = values[0:3]
+        values_t[0:4,i] = values[0:4]
 
         i += 1
 
     j = 0
-    black_pixels = 0
-    while(black_pixels < 5000 and j < num_cols):
+    w = 0
+    h = 0
+
+    while((w*h < 20000 or w*h > 1000000 or w<h) and j < num_cols):
 
         level = round(np.mean(values_t[j,:]))
         
-        if level <= 150:
+        if level <= 128:
             final_img = cv.morphologyEx(img_gray, cv.MORPH_OPEN, strel)
-            mask = (final_img != level)
+            mask = (final_img >= max(0,level-1)) * (final_img <= level+1)
             mask = mask.astype(np.uint8)
             mask *= 255
-            mask = cv.bitwise_not(mask)
-        elif level > 150:
+        elif level > 128:
             final_img = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, strel)
-            mask = (final_img >= level-3) * (final_img <= level+3)
-            #mask = cv.morphologyEx(np.uint8(mask), cv.MORPH_CLOSE, np.ones((60,60),np.uint8))
-            #mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((60,60),np.uint8))
-            #mask = (final_img == level)
+            mask = (final_img >= max(0,level-1)) * (final_img <= level+1)
             mask = mask.astype(np.uint8)
             mask *= 255
 
-        # Find contours of created mask
-        contours,_ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-        
-        # Find largest contour (it will contain the text bounding box)
-        contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
-        largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
-        
-        # Find bounding box belonging to detected contour
-        (x,y,w,h) = cv.boundingRect(largest_contour)
+        #mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((2,2), np.uint8))   
 
-        # Draw bounding boxes coordinates on original image to visualize it
-        cv.rectangle(img_gray, (x,y), (x+w,y+h), (0,255,0), 2)
-        
-        # Bboxes coordinates of the text positions
-        tlx = x
-        tly = y
-        brx = x + w
-        bry = y + h
+        if np.sum(mask) != 0:
 
-        # Extract bounding boxes pixels 
-        black_pixels = w*h
+            # Find contours of created mask
+            contours,_ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+
+            # Find largest contour (it will contain the text bounding box)
+            contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
+            largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
+            
+            # Find bounding box belonging to detected contour
+            (x,y,w,h) = cv.boundingRect(largest_contour)
+
+            # Draw bounding boxes coordinates on original image to visualize it
+            cv.rectangle(img_gray, (x,y), (x+w,y+h), (0,255,0), 2)
+            
+            # Bboxes coordinates of the text positions
+            tlx = x
+            tly = y
+            brx = x + w
+            bry = y + h
+
+            # Extract bounding boxes pixels 
+            bb_size = w*h
 
         j+=1
 
@@ -319,7 +321,7 @@ def search(queries, database, distance, k):
             ranking = np.ones((k, 2), dtype=float) * 9999
             for j in range(0, len(database)):
                 # Compute the distance metric
-                dist = sum(pow(abs(database[j] - queries[i]), 2))
+                dist = sum(pow(abs(np.array(database[j]) - np.array(queries[i])), 2))
                 # Check the ranking and update it
                 if (dist < max(ranking[:, 1])):
                     # Add the distance and the id to the db
@@ -399,7 +401,7 @@ def main():
     strel_pd = np.ones((20,20),np.uint8)
     
     # Number of columns considered from the center of the image towards the right
-    num_cols = 10
+    num_cols = 6
     
     # List to store detected bounding boxes coordinates
     coords = []
@@ -440,7 +442,7 @@ def main():
         print('Recall: ' + str(np.mean(recall)))
         print('F-measure: ' + str(np.mean(fscore)))
 
-    if (QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2'):
+    if (QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2'):
         realcoords = pickle.load(open(QUERY_SET + '/text_boxes.pkl','rb'))
         i = 0
         for i in range(0, len(realcoords)):
@@ -452,8 +454,8 @@ def main():
 
         ## WRITE PREDICTED BOUNDING BOXES ##
         pickle.dump(pred_coords, open('../qs/' + QUERY_SET + '/pred_bboxes.pkl','wb'))
-
-
+    
+    ## ADD QSD2_W2 AND QST2_W2
 
     ## SEARCH FOR THE QUERIES IN THE DB ##
     final_ranking = search(queries, database, DIST_METRIC, K)
