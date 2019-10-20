@@ -309,14 +309,14 @@ def extract_features(img,mask):
 
 #Extracts feature vector from image. The returned vecor consists of the 1D histograms of
 # each of the image channels concatenated.
-    """
+    
     # Mask preprocessing
     if mask is not None:
         indices = np.where(mask != [0])
         if(indices[0].size != 0 and indices[1].size !=0):
             img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
             mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
-    """
+    
     # Level 0 histograms:
     hist_img = []
     npx = img.shape[0]*img.shape[1]
@@ -326,13 +326,7 @@ def extract_features(img,mask):
     hists = np.concatenate((hist_1,hist_2,hist_3))
     hist_img.append(hists)
 
-    flat_list = []
-    for sublist in hist_img:
-        for item in sublist:
-            flat_list.append(item)
-
-    return flat_list
-    """
+    
     # Multilevel histograms
     for i in range(0,DIVISIONS):
         for j in range(0,DIVISIONS):
@@ -355,7 +349,7 @@ def extract_features(img,mask):
         for item in sublist:
             flat_list.append(item)
     return flat_list
-    """
+    
 
 
 def search(queries, database, distance, k):
@@ -537,20 +531,21 @@ def main():
         pickle.dump(pred_coords, open('../qs/' + QUERY_SET + '/pred_bboxes.pkl','wb'))
     
     ## ADD QSD2_W2 AND QST2_W2
-
+    """
     ## SEARCH FOR THE QUERIES IN THE DB ##
     final_ranking = search(queries, database, DIST_METRIC, K)
     print('FINAL RANKING:')
     print(final_ranking)
-
+    """
+    """
     ## EVALUATION USING MAP@K ##
     if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qsd2_w1'  or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2':
         gt = pickle.load(open('../qs/' + QUERY_SET + '/gt_corresps.pkl','rb'))
         mapk_ = ml_metrics.mapk(gt,final_ranking.tolist(),K)
         print('MAP@K = '+ str(mapk_))
-    
+    """
     ## WRITE OUTPUT FILES ##
-    pickle.dump(final_ranking.tolist(), open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
+    pickle.dump(final_ranking, open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
 
 if __name__== "__main__":
   main()
