@@ -60,8 +60,9 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
         non_zero_row = np.nonzero(rows)
         non_zero_row = np.array(non_zero_row[0])
 
-        min_h = non_zero_row[0]
-        max_h = non_zero_row[len(non_zero_row)-1]
+        if non_zero_row != []:
+            min_h = non_zero_row[0]
+            max_h = non_zero_row[len(non_zero_row)-1]
         i = 0
 
         
