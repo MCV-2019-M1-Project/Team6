@@ -29,7 +29,7 @@ DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
 
-K = 1
+K = 10
 
 ## FUNCTIONS ##
 def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, background_mask):
@@ -309,14 +309,14 @@ def extract_features(img,mask):
 
 #Extracts feature vector from image. The returned vecor consists of the 1D histograms of
 # each of the image channels concatenated.
-    
+    """
     # Mask preprocessing
     if mask is not None:
         indices = np.where(mask != [0])
         if(indices[0].size != 0 and indices[1].size !=0):
             img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
             mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
-
+    """
     # Level 0 histograms:
     hist_img = []
     npx = img.shape[0]*img.shape[1]
@@ -326,6 +326,13 @@ def extract_features(img,mask):
     hists = np.concatenate((hist_1,hist_2,hist_3))
     hist_img.append(hists)
 
+    flat_list = []
+    for sublist in hist_img:
+        for item in sublist:
+            flat_list.append(item)
+
+    return flat_list
+    """
     # Multilevel histograms
     for i in range(0,DIVISIONS):
         for j in range(0,DIVISIONS):
@@ -348,7 +355,7 @@ def extract_features(img,mask):
         for item in sublist:
             flat_list.append(item)
     return flat_list
-
+    """
 
 
 def search(queries, database, distance, k):
@@ -358,8 +365,10 @@ def search(queries, database, distance, k):
 # distance and Hellinger Kernel similarity. Returns a 2D array containing the results of
 #the search for each of the queries.
 
+    print(np.shape(queries))
+
     final_ranking = np.zeros((len(queries), k), dtype=float)
-    
+
     if(distance == "euclidean"):
         for i in range(0, len(queries)):
             ranking = np.ones((k, 2), dtype=float) * 9999
@@ -449,7 +458,7 @@ def main():
     
     # List to store detected bounding boxes coordinates
     coords = []
-    
+    final_ranking = []
     for f in sorted(glob.glob(qs_l)):
         name = os.path.splitext(os.path.split(f)[1])[0]
         im = cv.imread(f, cv.IMREAD_COLOR)
@@ -494,11 +503,16 @@ def main():
         length = np.shape(mask)[0]
         if length > 2:
             length = 1
-            mask = [mask]     
+            mask = [mask]  
 
+        pre_list = []
         for m in range(length):
-            query_data.append(extract_features(im,mask[m].astype(np.uint8)))
-        queries.append(query_data)
+            listilla = search([extract_features(img,mask[m].astype(np.uint8))], database, DIST_METRIC, K)
+            pre_list.append(listilla.tolist())
+        final_ranking.append(pre_list)
+
+    print('FINAL RANKING:')
+    print(final_ranking)
 
         #queries.append(extract_features(img,mask))
 
