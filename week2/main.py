@@ -28,7 +28,7 @@ DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
 
-K=3
+K = 3
 
 ## FUNCTIONS ##
 def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
@@ -294,7 +294,7 @@ def search(queries, database, distance, k):
             ranking = np.ones((k, 2), dtype=float) * 9999
             for j in range(0, len(database)):
                 # Compute the distance metric
-                dist = sum(pow(abs(database[j] - queries[i]), 2))
+                dist = sum(pow(abs(np.array(database[j]) - np.array(queries[i])), 2))
                 # Check the ranking and update it
                 if (dist < max(ranking[:, 1])):
                     # Add the distance and the id to the db
@@ -397,7 +397,7 @@ def main():
             recall[i] = eval_metrics[3]
             fscore[i] = eval_metrics[4]
         # Query sets week 2
-        elif QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2':
+        elif QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2':
             img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
             mask, pred_coords = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords)
             mask = mask.astype(np.uint8)
@@ -410,7 +410,7 @@ def main():
         print('Recall: ' + str(np.mean(recall)))
         print('F-measure: ' + str(np.mean(fscore)))
 
-    if (QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2'):
+    if (QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2'):
         realcoords = pickle.load(open(QUERY_SET + '/text_boxes.pkl','rb'))
         i = 0
         for i in range(0, len(realcoords)):
@@ -422,8 +422,8 @@ def main():
 
         ## WRITE PREDICTED BOUNDING BOXES ##
         pickle.dump(pred_coords, open('../qs/' + QUERY_SET + '/pred_bboxes.pkl','wb'))
-
-
+    
+    ## ADD QSD2_W2 AND QST2_W2
 
     ## SEARCH FOR THE QUERIES IN THE DB ##
     final_ranking = search(queries, database, DIST_METRIC, K)
