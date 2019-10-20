@@ -309,8 +309,9 @@ def extract_features(img,mask):
     # Mask preprocessing
     if mask is not None:
         indices = np.where(mask != [0])
-        img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
-        mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+        if(indices[0].size != 0 and indices[1].size !=0):
+            img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+            mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
 
     # Level 0 histograms:
     hist_img = []
