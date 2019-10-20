@@ -133,8 +133,8 @@ def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, backgro
             j+=1
 
         background_mask[picture][y:y + h, x:x + w] = 0
-        cv.imwrite('results/'+ name + picture + 'txtrmask.png', background_mask[picture])
-        
+        cv.imwrite('results/'+ name + str(picture) + 'txtrmask.png', background_mask[picture])
+
         # Add bboxes coordinates to a list of lists
         if QUERY_SET != 'qsd2_w2' and QUERY_SET != 'qst2_w2':
             coords.append([(tlx,tly,brx,bry)])
@@ -469,9 +469,10 @@ def main():
             img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
             # Use the mask created (image without background) to indicate search text
             mask, pred_coords = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, bg_mask)
-            mask = mask.astype(np.uint8)
+            for m in range(np.shape(mask)[0]):
+                mask = mask[m].astype(np.uint8)
         else:
-            mask = bg_mask
+            mask = [bg_mask]
 
         i+=1
 
@@ -479,8 +480,8 @@ def main():
         # Iterate the masks (1 or 2 according to the images)
         query_data = []
 
-        for m in np.shape(bg_mask)[0]:
-            query_data.append(bg_mask(im,m))
+        for m in range(np.shape(mask)[0]):
+            query_data.append(extract_features(im,m))
 
         queries.append(query_data)
 
