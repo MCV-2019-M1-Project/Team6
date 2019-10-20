@@ -430,12 +430,16 @@ def main():
             mask = mask.astype(np.uint8)
         i+=1
 
-        # TODO!!!!
+        '''
+        # Iterate the masks (1 or 2 according to the images)
+        query_data = []
         for m in mask:
-            extract_features(img,m)
+            query_data.append(extract_features(img,m))
 
-        queries.append(extract_features(img,mask))
-    
+        queries.append(query_data)
+        '''
+        queries.append(queries)
+
     if QUERY_SET == 'qsd2_w1':
         print('Query set has ' + str(len(queries)) + ' images')
         print('Precision: ' + str(np.mean(precision)))
