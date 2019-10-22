@@ -15,6 +15,7 @@ from bbox_iou import bbox_iou
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
     cfg = yaml.safe_load(ymlfile)
+
 if cfg['colorspace'] == 'HSV' :
     COLORSPACE = cv.COLOR_BGR2HSV
 elif cfg['colorspace'] == 'YUV' :
