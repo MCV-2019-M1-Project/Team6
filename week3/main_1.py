@@ -7,7 +7,6 @@ import math
 import pandas as pd
 import os
 import yaml
-from matplotlib import pyplot as plt 
 from evaluation_funcs import performance_accumulation_pixel
 from evaluation_funcs import performance_evaluation_pixel
 from bbox_iou import bbox_iou
@@ -15,6 +14,7 @@ from bbox_iou import bbox_iou
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
     cfg = yaml.safe_load(ymlfile)
+
 if cfg['colorspace'] == 'HSV' :
     COLORSPACE = cv.COLOR_BGR2HSV
 elif cfg['colorspace'] == 'YUV' :
@@ -28,136 +28,102 @@ DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset'] # Input query set
 
-K = 10
+K = 3
 
 ## FUNCTIONS ##
-def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, background_mask):
-            
+def text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords):
+    
     # Obtain image dimensions
     height,width = img_gray.shape[:2]
     
-    c=[]
-
-    length = np.shape(background_mask)[0]
-
     # Create variable where final mask will be stored
-    #f_mask = np.ones(shape=(height,width))
-    f_mask = []
-
-    for picture in range(length):
+    f_mask = np.ones(shape=(height,width))
+    f_mask.fill(255)
+    
+    # Boundaries of the analyzed area
+    min_a = round(width/2)
+    max_a = round(min_a + num_cols)
+    
+    # Store pixel values in the analyzed area
+    values_t = np.zeros(shape=(max_a-min_a, max_a-min_a))
+    
+    i = 0
+    
+    for p in range(min_a, max_a):
+        # Per each column, compute number of ocurrences of every pixel value
+        col = img_gray[:,p]
         
-        # Boundaries of the analyzed area
-        columns = np.array(background_mask[picture]).sum(axis=0)
-        rows = np.array(background_mask[picture]).sum(axis=1)
-        non_zero_col = np.nonzero(columns)
-        non_zero_col = np.array(non_zero_col[0])
-
-        if non_zero_col != []:
-            min_a = round((non_zero_col[0] + non_zero_col[len(non_zero_col)-1])/2)
-            max_a = round(min_a + num_cols)
-
-            # Store pixel values in the analyzed area
-            values_t = np.zeros(shape=(int(max_a-min_a), int(max_a-min_a)))
-        else:
-            min_a = width/2
-            max_a = min_a + num_cols
-
-        non_zero_row = np.nonzero(rows)
-        non_zero_row = np.array(non_zero_row[0])
-
-        if non_zero_row != []:
-            min_h = non_zero_row[0]
-            max_h = non_zero_row[len(non_zero_row)-1]
-        else:
-            min_h = 0
-            max_h = height - 1
-                
-        i = 0
-
+        # Pixel values and number of ocurrences for the whole column
+        values = pd.Series(col).value_counts().keys().tolist()
         
-        for p in range(int(min_a), int(max_a)):
-            # Per each column, compute number of ocurrences of every pixel value
-            col = img_gray[min_h:max_h,p]
+        # Get highest pixel values (most frequent ones)
+        values_t[0:4,i] = values[0:4]
+
+        i += 1
+
+    j = 0
+    w = 0
+    h = 0
+
+    while((w*h < 20000 or w*h > 1000000 or w<h) and j < num_cols):
+
+        level = round(np.mean(values_t[j,:]))
+        
+        if level <= 128:
+            final_img = cv.morphologyEx(img_gray, cv.MORPH_OPEN, strel)
+            mask = (final_img >= max(0,level-1)) * (final_img <= level+1)
+            mask = mask.astype(np.uint8)
+            mask *= 255
+        elif level > 128:
+            final_img = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, strel)
+            mask = (final_img >= max(0,level-1)) * (final_img <= level+1)
+            mask = mask.astype(np.uint8)
+            mask *= 255
+
+        #mask = cv.morphologyEx(mask, cv.MORPH_OPEN, np.ones((2,2), np.uint8))   
+
+        if np.sum(mask) != 0:
+
+            # Find contours of created mask
+            contours,_ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+
+            # Find largest contour (it will contain the text bounding box)
+            contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
+            largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
             
-            # Pixel values and number of ocurrences for the whole column
-            values = pd.Series(col).value_counts().keys().tolist()
+            # Find bounding box belonging to detected contour
+            (x,y,w,h) = cv.boundingRect(largest_contour)
+
+            # Draw bounding boxes coordinates on original image to visualize it
+            cv.rectangle(img_gray, (x,y), (x+w,y+h), (0,255,0), 2)
             
-            # Get highest pixel values (most frequent ones)
-            values_t[0:4,i] = values[0:4]
+            # Bboxes coordinates of the text positions
+            tlx = x
+            tly = y
+            brx = x + w
+            bry = y + h
 
-            i += 1
+            # Extract bounding boxes pixels 
+            bb_size = w*h
 
-        j = 0
-        w = 0
-        h = 0
+        j+=1
 
-        while((w*h < 20000 or w*h > 1000000 or w<h) and j < num_cols):
+    # Add bboxes coordinates to a list of lists
+    coords.append([(tlx,tly,brx,bry)])
 
-            level = round(np.mean(values_t[j,:]))
-            
-            if level <= 128:
-                final_img = cv.morphologyEx(img_gray, cv.MORPH_OPEN, strel)
-                #mask = final_img == level #Method 1
-                mask = (final_img >= max(0,level-1)) * (final_img <= level+1) #Method 2
-                mask = mask.astype(np.uint8)
-                mask = mask*background_mask[picture]
-                #mask *= 255
-            elif level > 128:
-                final_img = cv.morphologyEx(img_gray, cv.MORPH_CLOSE, strel)
-                #mask = final_img == level #Method 1
-                mask = (final_img >= max(0,level-1)) * (final_img <= level+1) #Method 2
-                mask = mask.astype(np.uint8)
-                mask = mask*background_mask[picture]
-                #mask *= 255
-
-            if np.sum(mask) != 0:
-
-                # Find contours of created mask
-                contours,_ = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-
-                # Find largest contour (it will contain the text bounding box)
-                contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
-                largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
-                
-                # Find bounding box belonging to detected contour
-                (x,y,w,h) = cv.boundingRect(largest_contour)
-
-                # Draw bounding boxes coordinates on original image to visualize it
-                cv.rectangle(img_gray, (x,y), (x+w,y+h), (0,255,0), 2)
-                
-                # Bboxes coordinates of the text positions
-                tlx = x
-                tly = y
-                brx = x + w
-                bry = y + h
-            j+=1
-
-        background_mask[picture][y:y + h, x:x + w] = 0
-        cv.imwrite('results/'+ name + str(picture) + 'txtrmask.png', background_mask[picture])
-
-        # Add bboxes coordinates to a list of lists
-        if QUERY_SET != 'qsd2_w2' and QUERY_SET != 'qst2_w2':
-            coords.append([(tlx,tly,brx,bry)])
-            f_mask.append(background_mask[picture])
-        elif picture < length-1:
-            c.append([(tlx,tly,brx,bry)])
-            f_mask.append(background_mask[picture])
-        else:
-            f_mask.append(background_mask[picture])
-            c.append([(tlx,tly,brx,bry)])
-            coords.append([c])
-
-        # Create new mask with bboxes coordinates
-        # Bboxes pixels are black (text), white otherwise (painting)
-
-        #f_mask[y:y + h, x:x + w] = 0
-        #f_mask = f_mask + background_mask[picture]
-
+    # Create new mask with bboxes coordinates
+    # Bboxes pixels are black (text), white otherwise (painting)
+    f_mask[y:y + h, x:x + w] = 0
+    
+    if QUERY_SET == 'qsd2_w2':
+        back_removal,_ = compute_mask(img_gray, name)
+        f_mask = back_removal * f_mask
+    
+    cv.imwrite('results/'+ name + 'txtrmask.png', f_mask)
+    
     return f_mask, coords
 
 def compute_mask(img,name):
-    height, width = np.shape(img)
-
     # METHOD 3 BASED ON MORPHOLOGY
     if(BG_REMOVAL==3):
         # Compute morphological gradient by dilation (keep inner edges to remove wall posters)
@@ -175,7 +141,7 @@ def compute_mask(img,name):
         cv.drawContours(img_contour, contours, -1, 255, -1)
         
         # Opening to remove wall posters
-        kernel = np.ones((100,200),np.uint8)
+        kernel = np.ones((100,100),np.uint8)
         mask = cv.morphologyEx(img_contour, cv.MORPH_OPEN, kernel)
 
         # Avoid all zeros image
@@ -188,6 +154,9 @@ def compute_mask(img,name):
         c0 = img[:,:,0]
         c1 = img[:,:,1]
         c2 = img[:,:,2]
+        
+        # Height and width of channel (=image dims)
+        height,width = c0.shape[:2]
             
         # Percentage defining number of pixels per every portion of the image
         percent_c0 = 0.02
@@ -251,58 +220,24 @@ def compute_mask(img,name):
     # Save mask
     cv.imwrite('masks/' + name + '.png', mask)
     
-    if (QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2'):
-        # Read ground truth
-        g_t = cv.imread('../qs/' + QUERY_SET + '/' + name + '.png', cv.IMREAD_COLOR)
-        g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
-        
-        # Compute evaluation metrics
-        pixelTP, pixelFP, pixelFN, pixelTN = performance_accumulation_pixel(mask,g_t)
-        pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
-        F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
-        
-        eval_metrics = [pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity, F1]
-        '''
-        print("Precision: "+str(pixel_precision))
-        print("Accuracy: "+str(pixel_accuracy))
-        print("Specificity: "+str(pixel_specificity))
-        print("Recall (sensitivity): "+str(pixel_sensitivity))
-        print("F1: "+str(F1))
-        '''
-    else:
-        eval_metrics = [0,0,0,0,0]
-
-    # DETECT IF THERE ARE TWO IMAGES
-    # First method: check if the central mask is black
-    central_column = round(width/2)
-    central_column_mean = np.mean(mask[:,central_column:central_column+1])
+    # Read ground truth
+    g_t = cv.imread('../qs/' + QUERY_SET + '/' + name + '.png', cv.IMREAD_COLOR)
+    g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
     
-    # If central column is not zero, analyze some extra columns
-    # From 0.25 to 0.75 of the image, with a step of 100px
-    if central_column_mean != 0:
-        for i in range(round(0.5*(width/2)), round(1.5*(width/2)), 100):
-            central_column_mean = np.mean(mask[:,i:i+1])
-            if (central_column_mean == 0): # If found, exit for and keep central_column
-                central_column = i
-                break
-
-    # If after the second attempt two masks are detected 
-    if central_column_mean == 0:
-        # Generate white masks
-        mask_left = np.ones((height,width),np.uint8)
-        mask_right = np.ones((height,width),np.uint8)
-        
-        # Compute
-        mask_left[:,central_column:width] = 0
-        mask_right[:,0:central_column] = 0
-        mask_left = mask_left*mask
-        mask_right = mask_right*mask
-        bg_mask = [mask_left, mask_right]     
-   
-    else:
-         bg_mask= [mask]
-
-    return bg_mask, eval_metrics
+    # Compute evaluation metrics
+    pixelTP, pixelFP, pixelFN, pixelTN = performance_accumulation_pixel(mask,g_t)
+    pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
+    F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
+    
+    eval_metrics = [pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity, F1]
+    '''
+    print("Precision: "+str(pixel_precision))
+    print("Accuracy: "+str(pixel_accuracy))
+    print("Specificity: "+str(pixel_specificity))
+    print("Recall (sensitivity): "+str(pixel_sensitivity))
+    print("F1: "+str(F1))
+    '''
+    return mask, eval_metrics
 
 def extract_features(img,mask):
 
@@ -312,10 +247,9 @@ def extract_features(img,mask):
     # Mask preprocessing
     if mask is not None:
         indices = np.where(mask != [0])
-        if(indices[0].size != 0 and indices[1].size !=0):
-            img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
-            mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
-    
+        img = img[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+        mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+
     # Level 0 histograms:
     hist_img = []
     npx = img.shape[0]*img.shape[1]
@@ -325,7 +259,6 @@ def extract_features(img,mask):
     hists = np.concatenate((hist_1,hist_2,hist_3))
     hist_img.append(hists)
 
-    
     # Multilevel histograms
     for i in range(0,DIVISIONS):
         for j in range(0,DIVISIONS):
@@ -348,7 +281,7 @@ def extract_features(img,mask):
         for item in sublist:
             flat_list.append(item)
     return flat_list
-    
+
 
 
 def search(queries, database, distance, k):
@@ -358,10 +291,8 @@ def search(queries, database, distance, k):
 # distance and Hellinger Kernel similarity. Returns a 2D array containing the results of
 #the search for each of the queries.
 
-    print(np.shape(queries))
-
     final_ranking = np.zeros((len(queries), k), dtype=float)
-
+    
     if(distance == "euclidean"):
         for i in range(0, len(queries)):
             ranking = np.ones((k, 2), dtype=float) * 9999
@@ -451,100 +382,66 @@ def main():
     
     # List to store detected bounding boxes coordinates
     coords = []
-    final_ranking = []
+    
     for f in sorted(glob.glob(qs_l)):
         name = os.path.splitext(os.path.split(f)[1])[0]
         im = cv.imread(f, cv.IMREAD_COLOR)
         img = cv.cvtColor(im, COLORSPACE)
         
-        # NO BACKGROUND
-        if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1' or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2':
-            bg_mask = None
-        # BACKGROUND REMOVAL
-        elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1' or QUERY_SET == 'qsd2_w2':
+        # Query sets week 1
+        if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1':
+            mask = None
+        elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1':
             if BG_REMOVAL==3:
                 img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-                bg_mask, eval_metrics = compute_mask(img_gray,name)
+                mask, eval_metrics = compute_mask(img_gray,name)
             else:
-                bg_mask, eval_metrics = compute_mask(img,name)
+                mask, eval_metrics = compute_mask(img,name)
             precision[i] = eval_metrics[0]
             recall[i] = eval_metrics[3]
             fscore[i] = eval_metrics[4]
-        elif QUERY_SET == 'qst2_w2':
-            if BG_REMOVAL==3:
-                img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-                bg_mask, eval_metrics = compute_mask(img_gray,name)
-            else:
-                bg_mask,_eval_metrics = compute_mask(img,name)
-        
-        # TEXT REMOVAL
-        if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2' or QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qst2_w2':
+        # Query sets week 2
+        elif QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2' or QUERY_SET == 'qsd2_w2':
             img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-            # Use the mask created (image without background) to indicate search text
-            mask, pred_coords = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords, bg_mask)
-            #for m in range(np.shape(mask)[0]):
-                #mask = mask[m].astype(np.uint8)
-        else:
-            mask = [bg_mask]
-
+            mask, pred_coords = text_removal_mask(img_gray, name, strel, strel_pd, num_cols, coords)
+            mask = mask.astype(np.uint8)
         i+=1
-
-  
-        # Iterate the masks (1 or 2 according to the images)
-        query_data = []
-        
-        length = np.shape(mask)[0]
-        if length > 2:
-            length = 1
-            mask = [mask]  
-
-        pre_list = []
-        for m in range(length):
-            listilla = search([extract_features(img,mask[m].astype(np.uint8))], database, DIST_METRIC, K)
-            pre_list.append(listilla.tolist())
-        final_ranking.append(pre_list)
-
-    print('FINAL RANKING:')
-    print(final_ranking)
-
-        #queries.append(extract_features(img,mask))
-
+        queries.append(extract_features(img,mask))
+    
     if QUERY_SET == 'qsd2_w1':
         print('Query set has ' + str(len(queries)) + ' images')
         print('Precision: ' + str(np.mean(precision)))
         print('Recall: ' + str(np.mean(recall)))
         print('F-measure: ' + str(np.mean(fscore)))
 
-    if (QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2'):
+    if (QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2' or QUERY_SET == 'qsd2_w2' ):
         realcoords = pickle.load(open(QUERY_SET + '/text_boxes.pkl','rb'))
         i = 0
         for i in range(0, len(realcoords)):
-            predicted = coords[i][0]
-            real = realcoords[i][0]
+            real = coords[i][0]
+            predicted = realcoords[i][0]
             iou[i] = bbox_iou(real, predicted)
             i += 1
         print('Mean IOU: ' + str(np.mean(iou)))
-        print(predicted)
 
         ## WRITE PREDICTED BOUNDING BOXES ##
         pickle.dump(pred_coords, open('../qs/' + QUERY_SET + '/pred_bboxes.pkl','wb'))
     
     ## ADD QSD2_W2 AND QST2_W2
-    """
+
     ## SEARCH FOR THE QUERIES IN THE DB ##
     final_ranking = search(queries, database, DIST_METRIC, K)
     print('FINAL RANKING:')
     print(final_ranking)
-    """
-    """
+
     ## EVALUATION USING MAP@K ##
     if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qsd2_w1'  or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2':
         gt = pickle.load(open('../qs/' + QUERY_SET + '/gt_corresps.pkl','rb'))
         mapk_ = ml_metrics.mapk(gt,final_ranking.tolist(),K)
         print('MAP@K = '+ str(mapk_))
-    """
+    
     ## WRITE OUTPUT FILES ##
-    pickle.dump(final_ranking, open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
+    pickle.dump(final_ranking.tolist(), open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
 
 if __name__== "__main__":
   main()
