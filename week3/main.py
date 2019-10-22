@@ -1,3 +1,4 @@
+## PYTHON LIBS ##
 import cv2 as cv
 import numpy as np
 import glob
@@ -7,10 +8,14 @@ import math
 import pandas as pd
 import os
 import yaml
-from matplotlib import pyplot as plt 
+#from matplotlib import pyplot as plt 
 from evaluation_funcs import performance_accumulation_pixel
 from evaluation_funcs import performance_evaluation_pixel
 from bbox_iou import bbox_iou
+
+## CUSTOM LIBS ## 
+from extract_features import extract_features
+
 
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
@@ -22,11 +27,11 @@ elif cfg['colorspace'] == 'YUV' :
 elif cfg['colorspace'] == 'LAB' :
     COLORSPACE = cv.COLOR_BGR2Lab
 
-NBINS = cfg['nbins']    # Number of bins (from 0 to 255)
-DIVISIONS = cfg['divs'] # Number of divisions per dimension [2,4,8,...]
-DIST_METRIC= cfg['dist'] #'euclidean' 'chisq' or 'hellinger'
-BG_REMOVAL = cfg['bgrm'] # 1, 2 or 3 bg removal method
-QUERY_SET= cfg['queryset'] # Input query set
+NBINS = cfg['nbins']        # Number of bins (from 0 to 255)
+DIVISIONS = cfg['divs']     # Number of divisions per dimension [2,4,8,...]
+DIST_METRIC= cfg['dist']    #'euclidean' 'chisq' or 'hellinger'
+BG_REMOVAL = cfg['bgrm']    # 1, 2 or 3 bg removal method
+QUERY_SET= cfg['queryset']  # Input query set
 K = 10                      # find K closest images
 
 
@@ -37,19 +42,49 @@ def main():
     for f in sorted(glob.glob('../database/*.jpg')):
         img = cv.imread(f, cv.IMREAD_COLOR)
         img = cv.cvtColor(img, COLORSPACE)
-        database.append(extract_features(img,None))
+        database.append(extract_features(img, None, NBINS, DIVISIONS))
     print('Image database read!')
 
     # Read the text database
     database_txt = []
     for f in sorted(glob.glob('../database_text/*.txt')):
-        database.append()
+        with open(f, encoding = "ISO-8859-1") as fp:
+            line = fp.readline()
+            database_txt.append(str(line))
     print('Text database read!')
     print('Database has ' + str(len(database)) + ' images')
-    
+    print(database_txt)
 
+    # Read and process the queries
     queries = []
-    
+    for f in sorted(glob.glob('../qs/' + QUERY_SET + '/*.jpg')):
+        name = os.path.splitext(os.path.split(f)[1])[0]
+        im = cv.imread(f, cv.IMREAD_COLOR)
+        img = cv.cvtColor(im, COLORSPACE)
+        
+        # NO BACKGROUND
+        if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qst1_w1' or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w2':
+            bg_mask = None
+        # BACKGROUND REMOVAL
+        elif QUERY_SET == 'qsd2_w1' or QUERY_SET == 'qst2_w1' or QUERY_SET == 'qsd2_w2':
+            if BG_REMOVAL==3:
+                img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
+                bg_mask, eval_metrics = compute_mask(img_gray,name)
+            else:
+                bg_mask, eval_metrics = compute_mask(img,name)
+            precision[i] = eval_metrics[0]
+            recall[i] = eval_metrics[3]
+            fscore[i] = eval_metrics[4]
+        elif QUERY_SET == 'qst2_w2':
+            if BG_REMOVAL==3:
+                img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
+                bg_mask, eval_metrics = compute_mask(img_gray,name)
+            else:
+                bg_mask,_eval_metrics = compute_mask(img,name)
+
+
+"""
+    queries = []    
     qs_l = '../qs/' + QUERY_SET + '/*.jpg'
     
     # Evaluation metrics storing arrays
@@ -151,18 +186,20 @@ def main():
         pickle.dump(pred_coords, open('../qs/' + QUERY_SET + '/pred_bboxes.pkl','wb'))
     
     ## ADD QSD2_W2 AND QST2_W2
-    """
+
     ## SEARCH FOR THE QUERIES IN THE DB ##
     final_ranking = search(queries, database, DIST_METRIC, K)
     print('FINAL RANKING:')
     print(final_ranking)
-    """
-    """
+
     ## EVALUATION USING MAP@K ##
     if QUERY_SET == 'qsd1_w1' or QUERY_SET == 'qsd2_w1'  or QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2':
         gt = pickle.load(open('../qs/' + QUERY_SET + '/gt_corresps.pkl','rb'))
         mapk_ = ml_metrics.mapk(gt,final_ranking.tolist(),K)
         print('MAP@K = '+ str(mapk_))
-    """
+
     ## WRITE OUTPUT FILES ##
     pickle.dump(final_ranking, open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
+"""
+if __name__== "__main__":
+    main()
