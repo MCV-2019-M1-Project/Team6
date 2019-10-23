@@ -71,4 +71,8 @@ def search(queries, database, distance, k):
                 final_ranking[i, j] = ranking[idx, 0]
                 ranking[idx, :] = [0, 0]
 
-    return final_ranking
+    final_list = final_ranking.tolist()[0]
+    for i in range(len(final_list)):
+        final_list[i] = int(final_list[i])
+
+    return final_list

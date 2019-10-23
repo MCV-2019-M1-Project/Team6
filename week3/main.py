@@ -69,11 +69,11 @@ def main():
 
     # Evaluation metrics storing arrays
     qs_l = '../qs/' + QUERY_SET + '/*.jpg'
-    nqueries = len(qs_l)
-    precision = np.zeros(nqueries)
-    recall = np.zeros(nqueries)
-    fscore = np.zeros(nqueries)
-    iou = np.zeros(nqueries)
+    nqueries = 30
+    precision = np.zeros(30)
+    recall = np.zeros(30)
+    fscore = np.zeros(30)
+    iou = np.zeros(30)
 
     print(nqueries)
     # Read and process the queries
@@ -108,38 +108,40 @@ def main():
         mask, pred_coords = text_removal_mask(img_gray, name, kernel, post_kernel, num_cols, coords, bg_mask, QUERY_SET)
         
         # Iterate the masks (1 or 2 according to the images)
-        print(np.shape(mask))
         length = np.shape(mask)[0]
         if length > 2:
             length = 1
             mask = [mask]
-        print(length)
+        
         pre_list = []
         for m in range(length):
             listilla = search([extract_features(img,mask[m].astype(np.uint8), NBINS, DIVISIONS)], database, DIST_METRIC, K)
             print(listilla)
-            pre_list.append(listilla.tolist())
+            pre_list.append(listilla)
         final_ranking.append(pre_list)
         i += 1
 
     # Print the final ranking
     print('FINAL RANKING:')
+    print(len(final_ranking))
     print(final_ranking)
 
     # Print the evaluation metrics
     if QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3':
 
-        print('Query set has ' + str(len(nqueries)) + ' images')
+        print('Query set has ' + str(nqueries) + ' images')
         print('Precision: ' + str(np.mean(precision)))
         print('Recall: ' + str(np.mean(recall)))
         print('F-measure: ' + str(np.mean(fscore)))
 
         gt = pickle.load(open('../qs/' + QUERY_SET + '/gt_corresps.pkl','rb'))
-        mapk_ = ml_metrics.mapk(gt, final_ranking, K)
+
+        mapk_ = np.mean([ml_metrics.mapk([a],p,K) for a,p in zip(gt, final_ranking)])
+        #mapk_ = ml_metrics.mapk(gt, final_ranking, K)
         print('MAP@K = '+ str(mapk_))
 
     ## WRITE OUTPUT FILES ##
-    #pickle.dump(final_ranking, open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
+    pickle.dump(final_ranking, open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
 
 if __name__== "__main__":
     main()
