@@ -1,3 +1,4 @@
+#!/usr/bin/python3.5
 ## PYTHON LIBS ##
 import cv2 as cv
 import numpy as np
@@ -17,7 +18,7 @@ from bbox_iou import bbox_iou
 from extract_features import extract_features
 from compute_mask import compute_mask
 from text_removal_mask import text_removal_mask
-from search import search
+from search_queries import search
 
 
 ## PARAMETERS ##
@@ -55,7 +56,6 @@ def main():
             database_txt.append(str(line))
     print('Text database read!')
     print('Database has ' + str(len(database)) + ' images')
-    print(database_txt)
 
     # Text removal variables
     # Structuring element
@@ -68,29 +68,35 @@ def main():
     num_cols = 6
 
     # Evaluation metrics storing arrays
-    nqueries = len(glob.glob('../qs/' + QUERY_SET + '/*.jpg'))
+    qs_l = '../qs/' + QUERY_SET + '/*.jpg'
+    nqueries = len(qs_l)
     precision = np.zeros(nqueries)
     recall = np.zeros(nqueries)
     fscore = np.zeros(nqueries)
     iou = np.zeros(nqueries)
 
+    print(nqueries)
     # Read and process the queries
     i = 0
     final_ranking = []
-    for f in sorted(glob.glob('../qs/' + QUERY_SET + '/*.jpg')):
+    coords = []
+    
+    for f in sorted(glob.glob(qs_l)):
+        print('pew')
         # Read image and color conversions
         name = os.path.splitext(os.path.split(f)[1])[0]
         im = cv.imread(f, cv.IMREAD_COLOR)
         img = cv.cvtColor(im, COLORSPACE)
         img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 
+        bg_mask = None
         # NO BACKGROUND
         if QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qst1_w3':
             bg_mask = None
 
         # BACKGROUND REMOVAL
         elif QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qst2_w3':
-            bg_mask, eval_metrics = compute_mask(img_gray,name)
+            bg_mask, eval_metrics = compute_mask(img_gray,name,QUERY_SET)
 
             if eval_metrics is not None:
                 precision[i] = eval_metrics[0]
@@ -99,17 +105,19 @@ def main():
 
         # TEXT REMOVAL
         # Use the mask created (image without background) to indicate search text
-        mask, pred_coords = text_removal_mask(img_gray, name, kernel, post_kernel, num_cols, bg_mask)
+        mask, pred_coords = text_removal_mask(img_gray, name, kernel, post_kernel, num_cols, coords, bg_mask, QUERY_SET)
         
         # Iterate the masks (1 or 2 according to the images)
+        print(np.shape(mask))
         length = np.shape(mask)[0]
         if length > 2:
             length = 1
             mask = [mask]
-
+        print(length)
         pre_list = []
         for m in range(length):
             listilla = search([extract_features(img,mask[m].astype(np.uint8), NBINS, DIVISIONS)], database, DIST_METRIC, K)
+            print(listilla)
             pre_list.append(listilla.tolist())
         final_ranking.append(pre_list)
         i += 1
@@ -131,7 +139,7 @@ def main():
         print('MAP@K = '+ str(mapk_))
 
     ## WRITE OUTPUT FILES ##
-    pickle.dump(final_ranking, open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
+    #pickle.dump(final_ranking, open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
 
 if __name__== "__main__":
     main()
