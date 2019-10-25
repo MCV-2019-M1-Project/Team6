@@ -19,6 +19,7 @@ from extract_features import extract_features
 from compute_mask import compute_mask
 from text_removal_mask import text_removal_mask
 from search_queries import search
+from compute_lbp import compute_lbp
 
 
 ## PARAMETERS ##
@@ -45,7 +46,13 @@ def main():
     for f in sorted(glob.glob('../database/*.jpg')):
         img = cv.imread(f, cv.IMREAD_COLOR)
         img = cv.cvtColor(img, COLORSPACE)
-        database.append(extract_features(img, None, NBINS, DIVISIONS))
+        #descriptor = extract_features(img, None, NBINS, DIVISIONS)
+        descriptor = compute_lbp(img, 2, 1, 'uniform')
+        database.append(descriptor)
+        flat_list = descriptor
+        print("hola")
+        #print("image")
+        #print(flat_list)
     print('Image database read!')
 
     # Read the text database
@@ -115,7 +122,9 @@ def main():
         
         pre_list = []
         for m in range(length):
-            listilla = search([extract_features(img,mask[m].astype(np.uint8), NBINS, DIVISIONS)], database, DIST_METRIC, K)
+            descriptor = compute_lbp(img, 2, 1, 'uniform')
+            #descriptor = extract_features(img,mask[m].astype(np.uint8), NBINS, DIVISIONS)
+            listilla = search([descriptor], database, DIST_METRIC, K)
             print(listilla)
             pre_list.append(listilla)
         final_ranking.append(pre_list)
