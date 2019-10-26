@@ -15,7 +15,17 @@ radius: radious of LBP element
 METHOD: 'uniform'
 """
 
-def compute_lbp(im, block_size, n_bins, n_points, radius, METHOD):
+def compute_lbp(im, mask, block_size, n_bins, n_points, radius, METHOD):
+
+    # Mask preprocessing
+    if mask is not None:
+        indices = np.where(mask != [0])
+        if(indices[0].size != 0 and indices[1].size !=0):
+            im = im[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+            mask = mask[min(indices[0]):max(indices[0]),min(indices[1]):max(indices[1])]
+        mask = mask.astype('uint8')
+        im = cv.bitwise_and(im, im, mask=mask)
+
     # Resize image to speed up execution
     im = cv.resize(im, (128,128))
     # Variable to store histograms

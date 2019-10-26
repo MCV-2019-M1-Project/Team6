@@ -18,6 +18,7 @@ from bbox_iou import bbox_iou
 from extract_features import extract_features
 from compute_mask import compute_mask
 from text_removal_mask import text_removal_mask
+from text_removal_mask2 import find_text
 from search_queries import search
 from compute_lbp import compute_lbp
 
@@ -58,7 +59,7 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        descriptor = compute_lbp(img_gray, 8, 16, 8, 2, 'uniform')
+        descriptor = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
         #descriptor = extract_features(img, None, NBINS, DIVISIONS)
 
         # Store the descriptor
@@ -87,6 +88,7 @@ def main():
     # Read and process the queries
     final_ranking = []
     coords = []
+    i = 0
     for f in sorted(glob.glob(qs_l)):
         print('pew')
         # Read image 
@@ -113,11 +115,13 @@ def main():
                 precision[i] = eval_metrics[0]
                 recall[i] = eval_metrics[3]
                 fscore[i] = eval_metrics[4]
+                i += 1
 
         # TEXT REMOVAL
         # Use the mask created (image without background) to indicate search text
-        mask, pred_coords = text_removal_mask(img_gray, name, np.ones((15,15), np.uint8), np.ones((20,20),np.uint8), 6, coords, bg_mask, QUERY_SET)
-        
+        #mask, pred_coords = text_removal_mask(img_gray, name, np.ones((15,15), np.uint8), np.ones((20,20),np.uint8), 6, coords, bg_mask, QUERY_SET)
+        #mask = find_text(img_gray, [bg_mask])
+        mask = [bg_mask]
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
         if length > 2:
@@ -127,7 +131,7 @@ def main():
         pre_list = []
         for m in range(length):
             # Compute the descriptor using the mask
-            descriptor = compute_lbp(img_gray, 8, 16, 8, 2, 'uniform')
+            descriptor = compute_lbp(img_gray, mask[m], 8, 16, 8, 2, 'uniform')
             #descriptor = extract_features(img,mask[m].astype(np.uint8), NBINS, DIVISIONS)
 
             # Search for the query in the DB
