@@ -21,6 +21,7 @@ from text_removal_mask import text_removal_mask
 from text_removal_mask2 import find_text
 from search_queries import search
 from compute_lbp import compute_lbp
+from text_removal_mask2 import find_text
 
 
 ## PARAMETERS ##
@@ -59,9 +60,9 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        descriptor = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
-        #descriptor = extract_features(img, None, NBINS, DIVISIONS)
-
+        #descriptor = compute_lbp(img_gray, 8, 16, 8, 2, 'uniform')
+        descriptor = extract_features(img, None, NBINS, DIVISIONS)
+        
         # Store the descriptor
         database.append(descriptor)
         print(str(i))
@@ -104,11 +105,11 @@ def main():
 
         bg_mask = None
         # NO BACKGROUND
-        if QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qst1_w3':
+        if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w3':
             bg_mask = None
 
         # BACKGROUND REMOVAL
-        elif QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qst2_w3':
+        elif QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qst2_w3':
             bg_mask, eval_metrics = compute_mask(img_gray,name,QUERY_SET)
 
             if eval_metrics is not None:
@@ -119,9 +120,15 @@ def main():
 
         # TEXT REMOVAL
         # Use the mask created (image without background) to indicate search text
-        #mask, pred_coords = text_removal_mask(img_gray, name, np.ones((15,15), np.uint8), np.ones((20,20),np.uint8), 6, coords, bg_mask, QUERY_SET)
-        #mask = find_text(img_gray, [bg_mask])
-        mask = [bg_mask]
+        #mask, pred_coords = text_removal_mask(img_gray, name, kernel, post_kernel, num_cols, coords, bg_mask, QUERY_SET)
+        
+        if bg_mask is not None:
+            mask = find_text(img_gray, bg_mask, name)
+        else:
+            bg_mask = [np.zeros((img_gray.shape[0],img_gray.shape[1]))]
+            mask = find_text(img_gray, bg_mask, name)
+        # mask = [bg_mask] # No text removal mask
+
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
         if length > 2:
@@ -130,11 +137,15 @@ def main():
         
         pre_list = []
         for m in range(length):
-            # Compute the descriptor using the mask
-            descriptor = compute_lbp(img_gray, mask[m], 8, 16, 8, 2, 'uniform')
-            #descriptor = extract_features(img,mask[m].astype(np.uint8), NBINS, DIVISIONS)
+            # Use either one or the other mask
+            prod = cv.bitwise_not(mask[m]) * bg_mask[m]
+            prod = prod.astype(np.uint8)
 
-            # Search for the query in the DB
+            # Extract the features
+            #descriptor = compute_lbp(img_gray, 8, 16, 8, 2, 'uniform')
+            descriptor = extract_features(img, prod, NBINS, DIVISIONS)
+
+            # Search the query in the DB
             rank = search([descriptor], database, DIST_METRIC, K)
             print(rank)
             pre_list.append(rank)
@@ -147,7 +158,7 @@ def main():
     print(final_ranking)
 
     # Print the evaluation metrics
-    if QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3':
+    if QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd2_w3':
 
         print('Query set has ' + str(nqueries) + ' images')
         print('Precision: ' + str(np.mean(precision)))

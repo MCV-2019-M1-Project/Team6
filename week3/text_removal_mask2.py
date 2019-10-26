@@ -5,10 +5,10 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 
-QUERY_SET = 'qsd1_w2'
+QUERY_SET = 'qsd1_w3'
 qs_l = '../qs/' + QUERY_SET + '/*.jpg'
 
-def find_text(img, background_mask):
+def find_text(img, background_mask, name):
 
     #Image pre-processing: the difference betwen the image opening and closing is computed
     kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (2*6-1, 2*6-1))
@@ -74,6 +74,7 @@ def find_text(img, background_mask):
                 labels[positions] = 0
             else:
                 coords.append((x,y,w,h,size))
+    
     """
     cv.imshow("img_binary", labels*255)
     cv.waitKey(0)
@@ -111,7 +112,14 @@ def find_text(img, background_mask):
 # for f in sorted(glob.glob(qs_l)):
 #     name = os.path.splitext(os.path.split(f)[1])[0]
 #     im = cv.imread(f, cv.IMREAD_COLOR)
-im = cv.imread('../qs/' + QUERY_SET + '/00010.jpg', cv.IMREAD_COLOR)
+
+"""
+im = cv.imread('../qs/' + QUERY_SET + '/00005.jpg', cv.IMREAD_COLOR)
 im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 background_mask = [np.zeros((100,100))]
-find_text(im, background_mask)
+masks = find_text(im, background_mask)
+
+cv.imshow("mask", masks[0])
+cv.waitKey(0)
+cv.destroyAllWindows()
+"""
