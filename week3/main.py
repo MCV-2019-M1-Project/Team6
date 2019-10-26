@@ -45,8 +45,9 @@ def main():
     database = []
     for f in sorted(glob.glob('../database/*.jpg')):
         img = cv.imread(f, cv.IMREAD_COLOR)
+        img = cv.medianBlur(img,3)
+        img = cv.resize(img, (round(img.shape[0]/2),round(img.shape[1]/2)))
         img = cv.cvtColor(img, COLORSPACE)
-        #descriptor = extract_features(img, None, NBINS, DIVISIONS)
         descriptor = compute_lbp(img, 2, 1, 'uniform')
         database.append(descriptor)
         flat_list = descriptor
@@ -90,9 +91,14 @@ def main():
     
     for f in sorted(glob.glob(qs_l)):
         print('pew')
-        # Read image and color conversions
+        # Read image 
         name = os.path.splitext(os.path.split(f)[1])[0]
         im = cv.imread(f, cv.IMREAD_COLOR)
+        # Remove salt and pepper noise
+        im = cv.medianBlur(im,3)
+        # Resize image to speed up execution
+        im = cv.resize(im, (round(im.shape[0]/2),round(im.shape[1]/2)))
+        # Color conversions
         img = cv.cvtColor(im, COLORSPACE)
         img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 
