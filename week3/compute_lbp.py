@@ -7,34 +7,30 @@ import matplotlib.pyplot as plt
 from skimage.feature import local_binary_pattern
 
 """
-radius = 2
-n_points = 8 * radius
-METHOD = 'uniform'
+im: gray_scale image
+block_size: size of blocks to divide the image
+n_bins: number of bins to compute the histogram
+n_points: number of neigbours for LBP 
+radius: radious of LBP element
+METHOD: 'uniform'
 """
 
-def lbp_pattern_and_histogram(im, n_points, radius, METHOD):
-    n_points = n_points * radius
-    #lbp_pattern = local_binary_pattern(im, n_points, radius, METHOD)
-    lbp_pattern = local_binary_pattern(im, 8, 1)
-    n_bins = int(lbp_pattern.max() + 1)
-    hist,_ = np.histogram(lbp_pattern, density = True, bins = n_bins, range = (0, n_bins))
-    return hist, lbp_pattern
+def compute_lbp(im, block_size, n_bins, n_points, radius, METHOD):
+    # Resize image to speed up execution
+    im = cv.resize(im, (128,128))
+    # Variable to store histograms
+    hist = []
+    h, w = im.shape[:2]
+    # Compute LBP dividing the image in blocks
+    for i in range(0, h, block_size):
+        for j in range(0, w, block_size):
+            # Block
+            block = im[i:(i+block_size),j:(j+block_size)]
+            # Compute the LBP for the block
+            block_lbp = np.float32(local_binary_pattern(block, n_points, 1))
+            # Compute histogram over the block and normalize
+            npx = block_lbp.shape[0]*block_lbp.shape[1]
+            hist_lbp = cv.calcHist([block_lbp], [0], None, [n_bins], [0, 255])/npx
+            hist.append(hist_lbp)
 
-def list_to_list_of_lists(lst):
-    final_list = []
-    for elem in lst:
-        #sub = elem.split(',')
-        final_list.append([elem])
-    return final_list
-
-def compute_lbp(im, n_points, radius, METHOD):
-    # Compute the LBP pattern for each channel
-    hist1, lbp1 = lbp_pattern_and_histogram(im[:,:,0], n_points, radius, METHOD)
-    hist2, lbp2 = lbp_pattern_and_histogram(im[:,:,1], n_points, radius, METHOD)
-    hist3, lbp3 = lbp_pattern_and_histogram(im[:,:,2], n_points, radius, METHOD)
-    # Concatenate all channels
-    hists = np.concatenate((hist1,hist2,hist3))
-    # Format settings
-    hists_list = list_to_list_of_lists(hists)
-
-    return hists_list
+    return hist

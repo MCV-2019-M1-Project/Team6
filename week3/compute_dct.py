@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 im = cv.imread('../qs/qsd1_w2/00003.jpg', cv.IMREAD_COLOR)
 img_gray =  cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 
+dct_coeffs_list = []
 # Extract image dimensions
 h, w = img_gray.shape[:2]
 
@@ -57,14 +58,16 @@ for i in r_[:h:block_size]:
         dct_block = dct_im[i:(i+8),j:(j+8)]
         #Zig-zag scan of DCT block
         dct_coeffs = np.concatenate([np.diagonal(dct_block[::-1,:], i)[::(2*(i % 2)-1)] for i in range(1-dct_block.shape[0], dct_block.shape[0])])
+        print(len(dct_coeffs))
         # Keep N coefficients
         dct_coeffs = dct_coeffs[0:num_coeffs]
-        print(dct_coeffs)
+        dct_coeffs_list.append(dct_coeffs)
 
 cv.imshow("image", dct_im)
 cv.waitKey(0)
 cv.destroyAllWindows()
 
+#print(dct_coeffs_list)
 """
 # Display entire DCT
 plt.imshow(dct_im,cmap='gray',vmax = np.max(dct_im)*0.01,vmin = 0)
