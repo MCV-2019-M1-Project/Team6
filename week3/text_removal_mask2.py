@@ -35,8 +35,9 @@ def find_text(img, background_mask, name):
     img_dilated = cv.dilate(img_binary,kernel,iterations = 3)
     kernel = np.ones((10,10), np.uint8)
     img_eroded = cv.erode(img_dilated,kernel,iterations = 2)
+    img_opening = cv.morphologyEx(img_eroded, cv.MORPH_OPEN, np.ones((15,15), np.uint8))
 
-    num, labels = cv.connectedComponents(img_eroded)
+    num, labels = cv.connectedComponents(img_opening)
     sorted_labels = labels.ravel()
     sorted_labels = np.sort(sorted_labels)
 
@@ -47,10 +48,14 @@ def find_text(img, background_mask, name):
     cv.destroyAllWindows()
     """
     #Discarting non desired regions
-    min_size = npx/(20*20)
-    max_aspect_ratio = 0.8
-    min_aspect_ratio = 1/20
+    if np.shape(background_mask)[0]>1:
+        min_size = npx/(20*20)
+    else:
+        min_size = npx/(15*15)
+    max_aspect_ratio = 0.7
+    min_aspect_ratio = 1/15
     min_occupancy_ratio = 0.5
+    min_compactness_ratio = 0.025
     coords = []
 
     for i in range(1, num+1):
@@ -70,7 +75,8 @@ def find_text(img, background_mask, name):
             contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
             largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
             (x,y,w,h) = cv.boundingRect(largest_contour)
-            if h/w>max_aspect_ratio or h/w<min_aspect_ratio or len(positions[0])/(w*h)<min_occupancy_ratio:
+            perimeter = cv.arcLength(largest_contour,True)
+            if h/w>max_aspect_ratio or h/w<min_aspect_ratio or len(positions[0])/(w*h)<min_occupancy_ratio or (w*h)/(perimeter*perimeter)<min_compactness_ratio:
                 labels[positions] = 0
             else:
                 coords.append((x,y,w,h,size))
@@ -108,18 +114,3 @@ def find_text(img, background_mask, name):
     cv.destroyAllWindows()
     """
     return masks
-
-# for f in sorted(glob.glob(qs_l)):
-#     name = os.path.splitext(os.path.split(f)[1])[0]
-#     im = cv.imread(f, cv.IMREAD_COLOR)
-
-"""
-im = cv.imread('../qs/' + QUERY_SET + '/00005.jpg', cv.IMREAD_COLOR)
-im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-background_mask = [np.zeros((100,100))]
-masks = find_text(im, background_mask)
-
-cv.imshow("mask", masks[0])
-cv.waitKey(0)
-cv.destroyAllWindows()
-"""
