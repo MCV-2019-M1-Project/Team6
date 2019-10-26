@@ -41,10 +41,11 @@ def find_text(img, background_mask):
     sorted_labels = np.sort(sorted_labels)
 
     labels = np.uint8(labels)
+    """
     cv.imshow("img_binary", labels*255)
     cv.waitKey(0)
     cv.destroyAllWindows()
-
+    """
     #Discarting non desired regions
     min_size = npx/(20*20)
     max_aspect_ratio = 0.8
@@ -73,11 +74,11 @@ def find_text(img, background_mask):
                 labels[positions] = 0
             else:
                 coords.append((x,y,w,h,size))
-    
+    """
     cv.imshow("img_binary", labels*255)
     cv.waitKey(0)
     cv.destroyAllWindows()
-
+    """
     #Creating the expected number of masks by keeping the biggest bounding boxes
     coords.sort(key=lambda x:x[4], reverse=True)
     masks = []
@@ -100,11 +101,11 @@ def find_text(img, background_mask):
 	#         cy = int(moments["m01"] / moments["m00"])
     #         for j 
     #         distance = math.sqrt(((cx-(x+w/2))**2)+((cy-(y+h/2))**2))
-
+    """
     cv.imshow("mask", masks[0])
     cv.waitKey(0)
     cv.destroyAllWindows()
-
+    """
     return masks
 
 # for f in sorted(glob.glob(qs_l)):
