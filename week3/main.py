@@ -46,23 +46,25 @@ def main():
 
     # Read the image database
     database = []
-    i=0
+    i = 0
     for f in sorted(glob.glob('../database/*.jpg')):
+        # Read image
         img = cv.imread(f, cv.IMREAD_COLOR)
-        #img = cv.medianBlur(img,3)
+
+        # Apply median blur
+        img = cv.medianBlur(img,3)
+
+        # Colorspace changes
         img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
         img = cv.cvtColor(img, COLORSPACE)
         #descriptor = compute_lbp(img_gray, 8, 16, 8, 2, 'uniform')
         descriptor = extract_features(img, None, NBINS, DIVISIONS)
         database.append(descriptor)
-        flat_list = descriptor
         print(str(i))
         i+=1
-        #print("image")
-        #print(flat_list)
     print('Image database read!')
 
-    # Read the text database
+    # Read the text database - TODO: Correct encoding
     database_txt = []
     for f in sorted(glob.glob('../database_text/*.txt')):
         with open(f, encoding = "ISO-8859-1") as fp:
@@ -70,16 +72,6 @@ def main():
             database_txt.append(str(line))
     print('Text database read!')
     print('Database has ' + str(len(database)) + ' images')
-
-    # Text removal variables
-    # Structuring element
-    kernel = np.ones((15,15), np.uint8)
-    
-    # Structuring element used after text removal
-    post_kernel = np.ones((20,20),np.uint8)
-    
-    # Number of columns considered from the center of the image towards the right
-    num_cols = 6
 
     # Evaluation metrics storing arrays
     qs_l = '../qs/' + QUERY_SET + '/*.jpg'
@@ -89,19 +81,18 @@ def main():
     fscore = np.zeros(30)
     iou = np.zeros(30)
 
-    print(nqueries)
     # Read and process the queries
-    i = 0
     final_ranking = []
     coords = []
-    
     for f in sorted(glob.glob(qs_l)):
         print('pew')
         # Read image 
         name = os.path.splitext(os.path.split(f)[1])[0]
         im = cv.imread(f, cv.IMREAD_COLOR)
+
         # Remove salt and pepper noise
-        # im = cv.medianBlur(im,3)
+        im = cv.medianBlur(im,3)
+        
         # Color conversions
         img = cv.cvtColor(im, COLORSPACE)
         img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
@@ -147,7 +138,6 @@ def main():
             print(listilla)
             pre_list.append(listilla)
         final_ranking.append(pre_list)
-        i += 1
 
     # Print the final ranking
     print('FINAL RANKING:')
