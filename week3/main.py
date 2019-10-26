@@ -21,7 +21,6 @@ from text_removal_mask import text_removal_mask
 from text_removal_mask2 import find_text
 from search_queries import search
 from compute_lbp import compute_lbp
-from text_removal_mask2 import find_text
 
 
 ## PARAMETERS ##
