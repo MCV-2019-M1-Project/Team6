@@ -129,6 +129,9 @@ def main():
             mask = find_text(img_gray, bg_mask, name)
         # mask = [bg_mask] # No text removal mask
 
+        #TEXT DETECTION
+        
+
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
         if length > 2:
