@@ -60,8 +60,8 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        #descriptor = compute_lbp(img_gray, 8, 16, 8, 2, 'uniform')
-        descriptor = extract_features(img, None, NBINS, DIVISIONS)
+        descriptor = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
+        #descriptor = extract_features(img, None, NBINS, DIVISIONS)
         
         # Store the descriptor
         database.append(descriptor)
@@ -142,8 +142,8 @@ def main():
             prod = prod.astype(np.uint8)
 
             # Extract the features
-            #descriptor = compute_lbp(img_gray, 8, 16, 8, 2, 'uniform')
-            descriptor = extract_features(img, prod, NBINS, DIVISIONS)
+            descriptor = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            #descriptor = extract_features(img, prod, NBINS, DIVISIONS)
 
             # Search the query in the DB
             rank = search([descriptor], database, DIST_METRIC, K)
