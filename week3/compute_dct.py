@@ -27,32 +27,12 @@ def compute_dct(im, block_size, num_coeffs):
             block_dct = cv.dct(block_float)
             dct_im[i:(i+block_size),j:(j+block_size)] = np.uint8(block_dct)*255.0
             dct_block = dct_im[i:(i+block_size),j:(j+block_size)]
+
             #Zig-zag scan of DCT block
             dct_coeffs = np.concatenate([np.diagonal(dct_block[::-1,:], i)[::(2*(i % 2)-1)] for i in range(1-dct_block.shape[0], dct_block.shape[0])])
+
             # Keep N coefficients
             dct_coeffs = dct_coeffs[0:num_coeffs]
-            dct_coeffs_list.append(dct_coeffs)
+            dct_coeffs_list = np.append(dct_coeffs_list, dct_coeffs)
 
-    dct_coeffs_list = np.hstack(dct_coeffs_list)
-
-    final_list = []
-    for item in dct_coeffs_list:
-        final_list.append([item])
-
-    return final_list, dct_im
-
-
-"""
-im = cv.imread('../qs/qsd1_w2/00003.jpg', cv.IMREAD_COLOR)
-img_gray =  cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-
-dct_coeffs_list, dct_im = compute_dct(img_gray, 8, 16)
-#print(dct_coeffs_list)
-#print(len(dct_coeffs_list))
-
-print(dct_coeffs_list)
-
-cv.imshow("dct_image", dct_im)
-cv.waitKey(0)
-cv.destroyAllWindows()
-"""
+    return np.expand_dims(dct_coeffs_list, axis=1)
