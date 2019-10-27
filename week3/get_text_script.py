@@ -48,6 +48,7 @@ for f in sorted(glob.glob('../qs/' + QUERY_SET +'/*.jpg')):
 print(found_text)
 dist = []
 for i in range(len(gt)):
+    #THIS IS THE DISTANCE MEASURE TO BE USED WHEN COMPARING STRINGS
     dist.append(Levenshtein.distance(found_text[i], gt[i]))
 print(dist)
 print(sum(dist)/len(dist))
