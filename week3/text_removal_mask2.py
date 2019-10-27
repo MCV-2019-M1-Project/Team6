@@ -5,9 +5,6 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 
-QUERY_SET = 'qsd1_w3'
-qs_l = '../qs/' + QUERY_SET + '/*.jpg'
-
 def find_text(img, background_mask, name):
 
     #Image pre-processing: the difference betwen the image opening and closing is computed
@@ -55,7 +52,7 @@ def find_text(img, background_mask, name):
     max_aspect_ratio = 0.7
     min_aspect_ratio = 1/15
     min_occupancy_ratio = 0.5
-    min_compactness_ratio = 0.025
+    min_compactness_ratio = 0.002
     coords = []
 
     for i in range(1, num+1):
