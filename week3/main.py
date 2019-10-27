@@ -14,6 +14,7 @@ from evaluation_funcs import performance_accumulation_pixel
 from evaluation_funcs import performance_evaluation_pixel
 from bbox_iou import bbox_iou
 
+
 ## CUSTOM LIBS ## 
 from extract_features import extract_features
 from compute_mask import compute_mask
@@ -71,7 +72,7 @@ def main():
     # Read the text database - TODO: Correct encoding
     database_txt = []
     for f in sorted(glob.glob('../database_text/*.txt')):
-        with open(f, encoding = "ISO-8859-1") as fp:
+        with open(f, encoding = "ascii") as fp:
             line = fp.readline()
             database_txt.append(str(line))
     print('Text database read!')
