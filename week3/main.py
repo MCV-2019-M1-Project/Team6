@@ -69,14 +69,21 @@ def main():
         i+=1
     print('Image database read!')
 
-    # Read the text database - TODO: Correct encoding
+    # Read the text database 
     database_txt = []
     for f in sorted(glob.glob('../database_text/*.txt')):
-        with open(f, encoding = "ascii") as fp:
-            line = fp.readline()
-            database_txt.append(str(line))
+        with open(f, encoding="ISO-8859-1") as textfile:
+            line = str(textfile.readline())
+            line = line.strip("'()")
+            line = line.split(', ')
+            author = line[0].strip("'")
+            if author == '':
+                author = 'None'
+            database_txt.append( author.lower() )
+
     print('Text database read!')
     print('Database has ' + str(len(database)) + ' images')
+    print(database_txt)
 
     # Evaluation metrics storing arrays
     qs_l = '../qs/' + QUERY_SET + '/*.jpg'
