@@ -22,7 +22,7 @@ from text_removal_mask import text_removal_mask
 from text_removal_mask2 import find_text
 from search_queries import search
 from compute_lbp import compute_lbp
-
+from get_text import get_text
 
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
@@ -69,14 +69,21 @@ def main():
         i+=1
     print('Image database read!')
 
-    # Read the text database - TODO: Correct encoding
+    # Read the text database 
     database_txt = []
     for f in sorted(glob.glob('../database_text/*.txt')):
-        with open(f, encoding = "ascii") as fp:
-            line = fp.readline()
-            database_txt.append(str(line))
+        with open(f, encoding="ISO-8859-1") as textfile:
+            line = str(textfile.readline())
+            line = line.strip("'()")
+            line = line.split(', ')
+            author = line[0].strip("'")
+            if author == '':
+                author = '#################'
+            database_txt.append( author.lower() )
+
     print('Text database read!')
     print('Database has ' + str(len(database)) + ' images')
+    print(database_txt)
 
     # Evaluation metrics storing arrays
     qs_l = '../qs/' + QUERY_SET + '/*.jpg'
@@ -92,7 +99,6 @@ def main():
     i = 0
     qst_txt = []
     for f in sorted(glob.glob(qs_l)):
-        print('pew')
         # Read image 
         name = os.path.splitext(os.path.split(f)[1])[0]
         im = cv.imread(f, cv.IMREAD_COLOR)
@@ -106,11 +112,11 @@ def main():
 
         bg_mask = None
         # NO BACKGROUND
-        if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w3':
+        if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qst1_w3':
             bg_mask = None
 
         # BACKGROUND REMOVAL
-        elif QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qst2_w3':
+        elif QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qst2_w3':
             bg_mask, eval_metrics = compute_mask(img_gray,name,QUERY_SET)
 
             if eval_metrics is not None:
@@ -126,15 +132,17 @@ def main():
         if bg_mask is not None:
             mask = find_text(img_gray, bg_mask, name)
         else:
-            bg_mask = [np.zeros((img_gray.shape[0],img_gray.shape[1]))]
+            bg_mask = [np.ones((img_gray.shape[0],img_gray.shape[1]))]
             mask = find_text(img_gray, bg_mask, name)
-        # mask = [bg_mask] # No text removal mask
+        
+        #mask = bg_mask # No text removal mask
 
         #TEXT DETECTION
-        # qst_txt.append(get_text(img_gray, mask))
+        #qst_txt.append(get_text(img_gray, mask, database_txt))
 
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
+        print(length)
         if length > 2:
             length = 1
             mask = [mask]
@@ -161,8 +169,11 @@ def main():
     print(len(final_ranking))
     print(final_ranking)
 
+    print('AUTHORS:')
+    print(qst_txt)
+
     # Print the evaluation metrics
-    if QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd2_w3':
+    if QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3':
 
         print('Query set has ' + str(nqueries) + ' images')
         print('Precision: ' + str(np.mean(precision)))
