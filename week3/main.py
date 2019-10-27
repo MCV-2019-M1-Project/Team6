@@ -62,9 +62,10 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        #descriptor = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
-        #descriptor = extract_features(img, None, NBINS, DIVISIONS)
-        descriptor = compute_hog(img, 2)
+        #descriptor = extract_features(img, prod, NBINS, DIVISIONS)
+        #descriptor = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+        #descriptor = compute_hog(img, 2)
+        descriptor = compute_dct(img, 8, 64)
         print(np.shape(descriptor))
         
         # Store the descriptor
@@ -161,7 +162,8 @@ def main():
             # Extract the features
             #descriptor = extract_features(img, prod, NBINS, DIVISIONS)
             #descriptor = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
-            descriptor = compute_hog(img, 2)
+            #descriptor = compute_hog(img, 2)
+            descriptor = compute_dct(img, 8, 64)
             print(np.shape(descriptor))
 
             # Search the query in the DB
