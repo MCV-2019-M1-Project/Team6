@@ -90,6 +90,7 @@ def main():
     final_ranking = []
     coords = []
     i = 0
+    qst_txt = []
     for f in sorted(glob.glob(qs_l)):
         print('pew')
         # Read image 
@@ -130,7 +131,7 @@ def main():
         # mask = [bg_mask] # No text removal mask
 
         #TEXT DETECTION
-        
+        # qst_txt.append(get_text(img_gray, mask))
 
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
