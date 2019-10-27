@@ -8,11 +8,11 @@ import matplotlib.pyplot as plt
 
 # descriptor = compute_dct(img_gray, 8, 16)
 
-def compute_dct(im, block_size, num_coeffs):
+def compute_dct(im, block_size, num_coeffs, img_size):
     # List to store kept DCT coefficients
     dct_coeffs_list = []
     # Resize image to speed up execution
-    im = cv.resize(im, (512, 512)) 
+    im = cv.resize(im, (img_size, img_size)) 
     h, w = im.shape[:2]
     # Variable to store DCT
     dct_im = np.zeros([h,w], dtype=np.uint8)
