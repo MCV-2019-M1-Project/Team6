@@ -41,10 +41,15 @@ def compute_lbp(im, mask, block_size, n_bins, n_points, radius, METHOD):
 
             # Compute the LBP for the block
             block_lbp = np.float32(local_binary_pattern(block, n_points, 1))
-            
+
             # Compute histogram over the block and normalize
             npx = block_lbp.shape[0]*block_lbp.shape[1]
             hist_lbp = cv.calcHist([block_lbp], [0], None, [n_bins], [0, 255])/npx
             hist.append(hist_lbp)
 
-    return hist
+    flat_list = []
+    for sublist in hist:
+        for item in sublist:
+            flat_list.append(item)
+
+    return flat_list
