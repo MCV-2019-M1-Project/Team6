@@ -5,6 +5,7 @@ import os
 import numpy as np
 import pytesseract
 import Levenshtein
+import random
 
 #Returns the predicted queries, one per each binary mask in input list masks
 #The strings contain the closest author in the ddbb
@@ -50,6 +51,7 @@ def get_text(img_gray, masks, database_txt):
             if(db == author):
                 authors.append(j)
             j += 1
+        random.shuffle(authors)
         final_authors.append(authors[:10])
 
     #print(found_text)

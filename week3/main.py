@@ -61,11 +61,12 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        descriptor = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
-        #descriptor = extract_features(img, None, NBINS, DIVISIONS)
+        descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
+        descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
         
         # Store the descriptor
-        database.append(descriptor)
+        database.append(descriptor_1 + descriptor_2)
+
         print(str(i))
         i+=1
     print('Image database read!')
@@ -105,7 +106,7 @@ def main():
         im = cv.imread(f, cv.IMREAD_COLOR)
 
         # Remove salt and pepper noise
-        im = cv.medianBlur(im,3)
+        im = cv.medianBlur(im, 3)
         
         # Color conversions
         img = cv.cvtColor(im, COLORSPACE)
@@ -156,8 +157,9 @@ def main():
             prod = prod.astype(np.uint8)
 
             # Extract the features
-            #descriptor = extract_features(img, prod, NBINS, DIVISIONS)
-            descriptor = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
+            descriptor = descriptor_1 + descriptor_2
             print(np.shape(descriptor))
             print(np.shape(np.array(descriptor)))
 
