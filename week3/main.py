@@ -97,6 +97,7 @@ def main():
     final_ranking = []
     coords = []
     i = 0
+    qst_txt = []
     for f in sorted(glob.glob(qs_l)):
         print('pew')
         # Read image 
@@ -132,9 +133,13 @@ def main():
         if bg_mask is not None:
             mask = find_text(img_gray, bg_mask, name)
         else:
-            bg_mask = [np.zeros((img_gray.shape[0],img_gray.shape[1]))]
+            bg_mask = [np.ones((img_gray.shape[0],img_gray.shape[1]))]
             mask = find_text(img_gray, bg_mask, name)
-        # mask = [bg_mask] # No text removal mask
+        
+        #mask = bg_mask # No text removal mask
+
+        #TEXT DETECTION
+        # qst_txt.append(get_text(img_gray, mask))
 
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
@@ -165,7 +170,7 @@ def main():
     print(final_ranking)
 
     # Print the evaluation metrics
-    if QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd2_w3':
+    if QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3':
 
         print('Query set has ' + str(nqueries) + ' images')
         print('Precision: ' + str(np.mean(precision)))
