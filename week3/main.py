@@ -23,6 +23,7 @@ from text_removal_mask import text_removal_mask
 from text_removal_mask2 import find_text
 from search_queries import search
 from compute_lbp import compute_lbp
+from compute_hog import compute_hog
 from get_text import get_text
 
 ## PARAMETERS ##
@@ -61,11 +62,15 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
-        descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
-        
+        #descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
+        #descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
+        descriptor_3 = compute_hog(img, None, 2)
+        #descriptor_4 = compute_dct(img, 8, 64)
+
+        descriptor = descriptor_3
+
         # Store the descriptor
-        database.append(descriptor_1 + descriptor_2)
+        database.append(descriptor)
 
         print(str(i))
         i+=1
@@ -157,11 +162,13 @@ def main():
             prod = prod.astype(np.uint8)
 
             # Extract the features
-            descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
-            descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
-            descriptor = descriptor_1 + descriptor_2
+            #descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            #descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
+            descriptor_3 = compute_hog(img, prod, 2)
+            #descriptor_4 = compute_dct(img, 8, 64)
+
+            descriptor = descriptor_3
             print(np.shape(descriptor))
-            print(np.shape(np.array(descriptor)))
 
             # Search the query in the DB
             rank = search([descriptor], database, DIST_METRIC, K)
@@ -180,7 +187,7 @@ def main():
             
 
     # Print the evaluation metrics
-    if QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3':
+    if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3':
 
         print('Query set has ' + str(nqueries) + ' images')
         print('Precision: ' + str(np.mean(precision)))
