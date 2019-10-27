@@ -138,7 +138,8 @@ def main():
         #mask = bg_mask # No text removal mask
 
         #TEXT DETECTION
-        #qst_txt.append(get_text(img_gray, mask, database_txt))
+        qst_txt.append(get_text(img_gray, mask, database_txt))
+
 
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
@@ -154,8 +155,10 @@ def main():
             prod = prod.astype(np.uint8)
 
             # Extract the features
-            descriptor = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
             #descriptor = extract_features(img, prod, NBINS, DIVISIONS)
+            descriptor = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            print(np.shape(descriptor))
+            print(np.shape(np.array(descriptor)))
 
             # Search the query in the DB
             rank = search([descriptor], database, DIST_METRIC, K)
@@ -171,6 +174,7 @@ def main():
 
     print('AUTHORS:')
     print(qst_txt)
+            
 
     # Print the evaluation metrics
     if QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3':
@@ -185,6 +189,12 @@ def main():
         mapk_ = np.mean([ml_metrics.mapk([a],p,K) for a,p in zip(gt, final_ranking)])
         #mapk_ = ml_metrics.mapk(gt, final_ranking, K)
         print('MAP@K = '+ str(mapk_))
+
+        if qst_txt != []:
+            mapk_ = np.mean([ml_metrics.mapk([a],p,K) for a,p in zip(gt, qst_txt)])
+            #mapk_ = ml_metrics.mapk(gt, final_ranking, K)
+            print('MAP@K text = '+ str(mapk_))
+
 
     ## WRITE OUTPUT FILES ##
     pickle.dump(final_ranking, open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
