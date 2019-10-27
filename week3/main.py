@@ -18,6 +18,7 @@ from bbox_iou import bbox_iou
 ## CUSTOM LIBS ## 
 from extract_features import extract_features
 from compute_mask import compute_mask
+from compute_mask_old import compute_mask_old
 from text_removal_mask import text_removal_mask
 from text_removal_mask2 import find_text
 from search_queries import search
@@ -117,7 +118,7 @@ def main():
 
         # BACKGROUND REMOVAL
         elif QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qst2_w3':
-            bg_mask, eval_metrics = compute_mask(img_gray,name,QUERY_SET)
+            bg_mask, eval_metrics = compute_mask(img,name,QUERY_SET)
 
             if eval_metrics is not None:
                 precision[i] = eval_metrics[0]
