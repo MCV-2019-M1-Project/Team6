@@ -14,53 +14,84 @@ from bbox_iou import bbox_iou
 
 
 def compute_mask(img, name, qs):
-    height, width = np.shape(img)
+    qs_l = '../qs/' + qs + '/*.jpg'
+
+    # Apply another median filter
+    img_median = cv.medianBlur(img,9)
+
+    # Compute masks in two channels of the image
+    img1 = img_median[:,:,1]
+    img2 = img_median[:,:,2]
+
+    height, width = np.shape(img1)
 
     # Compute morphological gradient by dilation (keep inner edges to remove wall posters)
+    kernel = np.ones((20,20),np.uint8)
+    img_dilation1 = cv.dilate(img1,kernel,iterations = 1)
+    img_gradient1 = img_dilation1 - img1
+    
     kernel = np.ones((40,40),np.uint8)
-    img_dilation = cv.dilate(img,kernel,iterations = 1)
-    img_gradient = img_dilation - img
-    
+    img_dilation2 = cv.dilate(img2,kernel,iterations = 1)
+    img_gradient2 = img_dilation2 - img2
+
     # Thresholding
-    _,img_th = cv.threshold(img_gradient, 30, 255, cv.THRESH_BINARY)
-    #retval,mask_img = cv.threshold(final_img, 30, 255, cv.THRESH_BINARY_INV+cv.THRESH_OTSU)
-
-    # Computing external contours
-    contours, _ = cv.findContours(img_th, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
-    img_contour = np.zeros_like(img_th)
-    cv.drawContours(img_contour, contours, -1, 255, -1)
+    _,img_th1 = cv.threshold(img_gradient1, 20, 255, cv.THRESH_BINARY)
+    _,img_th2 = cv.threshold(img_gradient2, 20, 255, cv.THRESH_BINARY)
     
-    # Opening to remove wall posters
-    kernel = np.ones((100,200),np.uint8)
-    mask = cv.morphologyEx(img_contour, cv.MORPH_OPEN, kernel)
+    # Computing external contours
+    contours1, _ = cv.findContours(img_th1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    img_contour1 = np.zeros_like(img_th1)
+    cv.drawContours(img_contour1, contours1, -1, 255, -1)
+    
+    contours2, _ = cv.findContours(img_th2, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    img_contour2 = np.zeros_like(img_th2)
+    cv.drawContours(img_contour2, contours2, -1, 255, -1)
 
+    # Opening to remove wall posters & others according to the image size
+    size_h = round((1/6)*height)
+    size_w = round((1/6)*width)
+    kernel = np.ones((size_h,size_w),np.uint8)
+    
+    mask1 = cv.morphologyEx(img_contour1, cv.MORPH_OPEN, kernel)
+    mask2 = cv.morphologyEx(img_contour2, cv.MORPH_OPEN, kernel)
+    
     # Avoid all zeros image
-    if(mask.any()==0):
-        mask = img_contour
-
+    if(mask1.any()==0 and mask2.any()==0):
+        mask = img_contour1
+    else:
+        mask = mask1 + mask2
+    
     # Save mask
     cv.imwrite('masks/' + name + '.png', mask)
-    
-    if qs == 'qsd1_w3' or qs == 'qsd2_w3':
+
+    # Compute evaluation metrics only if development set
+    if (qs == 'qsd2_w1' or qs == 'qsd2_w2' or qs == 'qsd2_w3' or qs == 'qsd3_w3'):
         # Read ground truth
         g_t = cv.imread('../qs/' + qs + '/' + name + '.png', cv.IMREAD_COLOR)
         g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
-        
+
         # Compute evaluation metrics
         pixelTP, pixelFP, pixelFN, pixelTN = performance_accumulation_pixel(mask,g_t)
         pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity = performance_evaluation_pixel(pixelTP, pixelFP, pixelFN, pixelTN)
         F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
-        
-        eval_metrics = [pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity, F1]
 
+        eval_metrics = [pixel_precision, pixel_accuracy, pixel_specificity, pixel_sensitivity, F1]
+        '''
+        print("Precision: "+str(pixel_precision))
+        print("Accuracy: "+str(pixel_accuracy))
+        print("Specificity: "+str(pixel_specificity))
+        print("Recall (sensitivity): "+str(pixel_sensitivity))
+        print("F1: "+str(F1))
+        '''
     else:
-        eval_metrics = None
+        eval_metrics = [0,0,0,0,0]
 
     # DETECT IF THERE ARE TWO IMAGES
     # First method: check if the central mask is black
+    '''
     central_column = round(width/2)
     central_column_mean = np.mean(mask[:,central_column:central_column+1])
-    
+
     # If central column is not zero, analyze some extra columns
     # From 0.25 to 0.75 of the image, with a step of 100px
     if central_column_mean != 0:
@@ -75,15 +106,35 @@ def compute_mask(img, name, qs):
         # Generate white masks
         mask_left = np.ones((height,width),np.uint8)
         mask_right = np.ones((height,width),np.uint8)
-        
+
         # Compute
         mask_left[:,central_column:width] = 0
         mask_right[:,0:central_column] = 0
         mask_left = mask_left*mask
         mask_right = mask_right*mask
-        bg_mask = [mask_left, mask_right]     
-   
+        bg_mask = [mask_left, mask_right]
+        
+        # If one mask is black, keep only the correct one
+        if mask_left.any()==0:
+            bg_mask = [mask_right]
+        if mask_right.any()==0:
+            bg_mask = [mask_left]
+
     else:
-         bg_mask= [mask]
+        bg_mask= [mask]
+    '''
+
+    # Second method: detect contours
+    contours, hier = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    
+    #If two paintings, return 2 masks
+    if(np.shape(hier)[1] == 2):
+        mask_right = np.zeros_like(mask)
+        mask_left = np.zeros_like(mask)
+        cv.fillPoly(mask_right, pts =[contours[0]], color=(255,255,255))
+        cv.fillPoly(mask_left, pts =[contours[1]], color=(255,255,255))
+        bg_mask = [mask_left, mask_right]
+    else:
+        bg_mask= [mask]
 
     return bg_mask, eval_metrics
