@@ -43,13 +43,16 @@ for f in sorted(glob.glob('../qs/' + QUERY_SET +'/*.jpg')):
     # cv.destroyAllWindows()
 
     text = pytesseract.image_to_string(binary_image, config="-c tessedit_char_whitelist=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ- ")
-    print(text)
+    #print(text)
     found_text.append(text)
-print(found_text)
+#print(found_text)
 dist = []
 for i in range(len(gt)):
-    dist.append(Levenshtein.distance(found_text[i], gt[i]))
-print(dist)
+    dist.append(Levenshtein.distance(found_text[i].lower(), gt[i].lower()))
+    print('Found: ' + found_text[i] + '\n' + 'GT: ' + gt[i])
+    print(dist[i])
+
+#print(dist)
 print(sum(dist)/len(dist))
 
 
