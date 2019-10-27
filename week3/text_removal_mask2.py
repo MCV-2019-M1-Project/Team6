@@ -111,3 +111,18 @@ def find_text(img, background_mask, name):
     cv.destroyAllWindows()
     """
     return masks
+
+# for f in sorted(glob.glob(qs_l)):
+#     name = os.path.splitext(os.path.split(f)[1])[0]
+#     im = cv.imread(f, cv.IMREAD_COLOR)
+
+"""
+im = cv.imread('../qs/' + QUERY_SET + '/00005.jpg', cv.IMREAD_COLOR)
+im = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
+background_mask = [np.zeros((100,100))]
+masks = find_text(im, background_mask)
+
+cv.imshow("mask", masks[0])
+cv.waitKey(0)
+cv.destroyAllWindows()
+""" 
