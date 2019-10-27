@@ -181,7 +181,7 @@ def main():
             
 
     # Print the evaluation metrics
-    if QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3':
+    if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3':
 
         print('Query set has ' + str(nqueries) + ' images')
         print('Precision: ' + str(np.mean(precision)))
