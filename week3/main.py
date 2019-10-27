@@ -22,7 +22,7 @@ from text_removal_mask import text_removal_mask
 from text_removal_mask2 import find_text
 from search_queries import search
 from compute_lbp import compute_lbp
-
+from get_text import get_text
 
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
@@ -78,7 +78,7 @@ def main():
             line = line.split(', ')
             author = line[0].strip("'")
             if author == '':
-                author = 'None'
+                author = '#################'
             database_txt.append( author.lower() )
 
     print('Text database read!')
@@ -99,7 +99,6 @@ def main():
     i = 0
     qst_txt = []
     for f in sorted(glob.glob(qs_l)):
-        print('pew')
         # Read image 
         name = os.path.splitext(os.path.split(f)[1])[0]
         im = cv.imread(f, cv.IMREAD_COLOR)
@@ -113,11 +112,11 @@ def main():
 
         bg_mask = None
         # NO BACKGROUND
-        if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qst1_w3':
+        if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qst1_w3':
             bg_mask = None
 
         # BACKGROUND REMOVAL
-        elif QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qst2_w3':
+        elif QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qst2_w3':
             bg_mask, eval_metrics = compute_mask(img_gray,name,QUERY_SET)
 
             if eval_metrics is not None:
@@ -139,10 +138,11 @@ def main():
         #mask = bg_mask # No text removal mask
 
         #TEXT DETECTION
-        # qst_txt.append(get_text(img_gray, mask))
+        #qst_txt.append(get_text(img_gray, mask, database_txt))
 
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
+        print(length)
         if length > 2:
             length = 1
             mask = [mask]
@@ -168,6 +168,9 @@ def main():
     print('FINAL RANKING:')
     print(len(final_ranking))
     print(final_ranking)
+
+    print('AUTHORS:')
+    print(qst_txt)
 
     # Print the evaluation metrics
     if QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3':
