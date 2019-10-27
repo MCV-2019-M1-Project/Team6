@@ -23,6 +23,7 @@ from text_removal_mask import text_removal_mask
 from text_removal_mask2 import find_text
 from search_queries import search
 from compute_lbp import compute_lbp
+from compute_hog import compute_hog
 from get_text import get_text
 
 ## PARAMETERS ##
@@ -61,8 +62,10 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        descriptor = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
+        #descriptor = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
         #descriptor = extract_features(img, None, NBINS, DIVISIONS)
+        descriptor = compute_hog(img, 2)
+        print(np.shape(descriptor))
         
         # Store the descriptor
         database.append(descriptor)
@@ -157,9 +160,9 @@ def main():
 
             # Extract the features
             #descriptor = extract_features(img, prod, NBINS, DIVISIONS)
-            descriptor = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            #descriptor = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            descriptor = compute_hog(img, 2)
             print(np.shape(descriptor))
-            print(np.shape(np.array(descriptor)))
 
             # Search the query in the DB
             rank = search([descriptor], database, DIST_METRIC, K)
