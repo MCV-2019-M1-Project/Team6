@@ -24,6 +24,7 @@ from text_removal_mask2 import find_text
 from search_queries import search
 from compute_lbp import compute_lbp
 from compute_hog import compute_hog
+from compute_dct import compute_dct
 from get_text import get_text
 
 ## PARAMETERS ##
@@ -62,12 +63,12 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
+        #descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
         #descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
         #descriptor_3 = compute_hog(img, None, 2, 128)
-        #descriptor_4 = compute_dct(img, 8, 64, 512)
+        descriptor_4 = compute_dct(img_gray, 8, 64, 512)
 
-        descriptor = descriptor_1
+        descriptor = descriptor_4
 
         # Store the descriptor
         database.append(descriptor)
@@ -162,13 +163,13 @@ def main():
             prod = prod.astype(np.uint8)
 
             # Extract the features
-            descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            #descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
             #descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
             #descriptor_3 = compute_hog(img, prod, 2, 128)
-            #descriptor_4 = compute_dct(img, 8, 64, 512)
+            descriptor_4 = compute_dct(img_gray, 8, 64, 512)
              
-            print(np.shape(descriptor_1))
-            descriptor = descriptor_1
+            print(np.shape(descriptor_4))
+            descriptor = descriptor_4
             
             # Search the query in the DB
             rank = search([descriptor], database, DIST_METRIC, K)
