@@ -26,4 +26,4 @@ def compute_hog(im, mask, block_size):
     fd = hog(image, orientations=8, pixels_per_cell=(block_size, block_size),
                         cells_per_block=(5, 5), visualize=False, multichannel=True, feature_vector=True)
 
-    return np.expand_dims(fd, axis=1)
+    return np.expand_dims(fd, axis=1).tolist()
