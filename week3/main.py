@@ -63,11 +63,11 @@ def main():
 
         # Compute descriptors
         descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
-        #descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
+        descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
         #descriptor_3 = compute_hog(img, None, 2)
         #descriptor_4 = compute_dct(img, 8, 64)
 
-        descriptor = descriptor_1
+        descriptor = descriptor_1 + descriptor_2
 
         # Store the descriptor
         database.append(descriptor)
@@ -130,7 +130,7 @@ def main():
                 precision[i] = eval_metrics[0]
                 recall[i] = eval_metrics[3]
                 fscore[i] = eval_metrics[4]
-                i += 1
+        
 
         # TEXT REMOVAL
         # Use the mask created (image without background) to indicate search text
@@ -145,8 +145,19 @@ def main():
         #mask = bg_mask # No text removal mask
 
         #TEXT DETECTION
-        qst_txt.append(get_text(img_gray, mask, database_txt))
-
+        final_authors, found_text = get_text(img_gray, mask, database_txt)
+        qst_txt.append( final_authors )
+        print(found_text[0])
+        file_auth =  open('../qs/' + QUERY_SET + '/author_' + str(i) + '.txt','w') 
+        print(len(found_text))
+        if len(found_text) == 1:
+            print(found_text[0], file = file_auth)
+        else:
+            print(found_text[1])
+            print(found_text[1], file = file_auth)
+            print(found_text[0], file = file_auth)
+        
+        file_auth.close()
 
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
@@ -163,12 +174,12 @@ def main():
 
             # Extract the features
             descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
-            #descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
+            descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
             #descriptor_3 = compute_hog(img, prod, 2)
             #descriptor_4 = compute_dct(img, 8, 64)
              
             print(np.shape(descriptor_1))
-            descriptor = descriptor_1
+            descriptor = descriptor_1 + descriptor_2
             
             # Search the query in the DB
             rank = search([descriptor], database, DIST_METRIC, K)
@@ -176,6 +187,7 @@ def main():
             pre_list.append(rank)
 
         final_ranking.append(pre_list)
+        i += 1
 
     # Print the final ranking
     print('FINAL RANKING:')
