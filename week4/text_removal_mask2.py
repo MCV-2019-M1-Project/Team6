@@ -68,7 +68,7 @@ def find_text(img, background_mask, name):
 
         else:
 
-            contours,_ = cv.findContours(region, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+            _, contours,_ = cv.findContours(region, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
             contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
             largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
             (x,y,w,h) = cv.boundingRect(largest_contour)
