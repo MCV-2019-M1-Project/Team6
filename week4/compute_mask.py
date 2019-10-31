@@ -39,11 +39,11 @@ def compute_mask(img, name, qs):
     _,img_th2 = cv.threshold(img_gradient2, 20, 255, cv.THRESH_BINARY)
     
     # Computing external contours
-    contours1, _ = cv.findContours(img_th1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    _ ,contours1, _ = cv.findContours(img_th1, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     img_contour1 = np.zeros_like(img_th1)
     cv.drawContours(img_contour1, contours1, -1, 255, -1)
     
-    contours2, _ = cv.findContours(img_th2, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
+    _ ,contours2, _ = cv.findContours(img_th2, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     img_contour2 = np.zeros_like(img_th2)
     cv.drawContours(img_contour2, contours2, -1, 255, -1)
 
@@ -125,7 +125,7 @@ def compute_mask(img, name, qs):
     '''
 
     # Second method: detect contours
-    contours, hier = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+    _, contours, hier = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
     
     #If two paintings, return 2 masks
     if(np.shape(hier)[1] == 2):
