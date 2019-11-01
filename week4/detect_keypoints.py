@@ -45,6 +45,7 @@ qs_l = '../qs/' + QUERY_SET + '/*.jpg'
 FLANN_INDEX_KDTREE = 1
 index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
 search_params = dict(checks=50)   # or pass empty dictionary
+flann = cv.FlannBasedMatcher(index_params,search_params)
 
 for f in sorted(glob.glob(qs_l)):
         # Read image 
@@ -81,7 +82,6 @@ for f in sorted(glob.glob(qs_l)):
                 im_db = cv.medianBlur(im_db, 3)
                 img_gray_db = cv.cvtColor(im_db,cv.COLOR_BGR2GRAY)
 
-                flann = cv.FlannBasedMatcher(index_params,search_params)
                 matches = flann.knnMatch(descriptors_db[h], des, k=2)
                 # Need to draw only good matches, so create a mask
                 matchesMask = [[0,0] for l in range(len(matches))]
