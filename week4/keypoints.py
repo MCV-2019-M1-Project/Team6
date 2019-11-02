@@ -8,10 +8,6 @@ import os
 import pickle
 import ml_metrics
 
-COLORSPACE = cv.COLOR_BGR2HSV
-K = 5
-size = 128
-max_matches = np.zeros(K)
 def compute_SIFT_kp_and_des(img, bg_mask, text_mask, sift, size):
 
     # Resize to speed up execution
@@ -27,6 +23,11 @@ def compute_SIFT_kp_and_des(img, bg_mask, text_mask, sift, size):
         kp, des = sift.detectAndCompute(img, None)
 
     return kp, des
+
+
+COLORSPACE = cv.COLOR_BGR2HSV
+K = 5
+size = 128
 
 descriptors_db = []
 keypoints_db = []
@@ -51,10 +52,9 @@ for f in sorted(glob.glob('../database/*.jpg')):
         descriptors_db.append(desc)
         keypoints_db.append(kps)
         i+=1
-        print(str(i))
 
 q = 0
-QUERY_SET = 'qsd1_w4'
+QUERY_SET = 'qsd1_w3'
 qs_l = '../qs/' + QUERY_SET + '/*.jpg'
 
 for f in sorted(glob.glob(qs_l)):
@@ -65,11 +65,6 @@ for f in sorted(glob.glob(qs_l)):
     im_gray = cv.cvtColor(im,cv.COLOR_BGR2GRAY)
     im = cv.cvtColor(im, COLORSPACE)
 
-    """
-    cv.imshow("query", im_gray)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-    """
      
      # Compute background and text masks
     bg_mask,_ = compute_mask(im, "prova" + name, 'qsd1w4')
@@ -85,27 +80,12 @@ for f in sorted(glob.glob(qs_l)):
     pre_list = []
     for m in range(length):
         # Compute SIFT keypoints and descriptors
-        kp, des_q = compute_SIFT_kp_and_des(im_gray, bg_mask[m], text_mask[m], sift, size)
-        """
-        cv.imshow("mask", bg_mask[m])
-        cv.waitKey(0)
-        cv.destroyAllWindows()
-
-        cv.imshow("mask", text_mask[m])
-        cv.waitKey(0)
-        cv.destroyAllWindows()
-        """
+        kp, des_q = compute_SIFT_kp_and_des(im_gray, None, text_mask[m], sift, size)
 
         matches_final = np.zeros(279)
         h = 0
 
         for f in sorted(glob.glob('../database/*.jpg')):
-            """
-            im_db = cv.imread(f, cv.IMREAD_COLOR)
-            im_db = cv.resize(im_db, (512,512))
-            im_db = cv.medianBlur(im_db, 3)
-            img_gray_db = cv.cvtColor(im_db,cv.COLOR_BGR2GRAY)
-            """
 
             matches = flann.knnMatch(descriptors_db[h], des_q, k=2)
 

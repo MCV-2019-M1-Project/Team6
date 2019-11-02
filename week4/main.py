@@ -24,7 +24,10 @@ from text_removal_mask2 import find_text
 from search_queries import search
 from compute_lbp import compute_lbp
 from compute_hog import compute_hog
+from compute_dct import compute_dct
 from get_text import get_text
+from compute_SIFT_kp_and_des import compute_SIFT
+from search_matches import search_matches
 
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
@@ -44,6 +47,8 @@ DIST_METRIC= cfg['dist']    #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm']    # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset']  # Input query set
 K = 10                      # find K closest images
+SIZE = 128
+SEARCH_METHOD = 2           # 1 for normal descriptors (distance) and 2 for keypoints matches (FLANN)
 
 def main():
 
@@ -62,12 +67,13 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
-        descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
+        #descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
+        #descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
         #descriptor_3 = compute_hog(img, None, 2)
-        #descriptor_4 = compute_dct(img, 8, 64)
+        #descriptor_4 = compute_dct(img_gray, 8, 64, 128)
+        descriptor_5 = compute_SIFT(img_gray, None, None, SIZE)
 
-        descriptor = descriptor_1 + descriptor_2
+        descriptor = descriptor_5
 
         # Store the descriptor
         database.append(descriptor)
@@ -105,6 +111,7 @@ def main():
     coords = []
     i = 0
     qst_txt = []
+
     for f in sorted(glob.glob(qs_l)):
         # Read image 
         name = os.path.splitext(os.path.split(f)[1])[0]
@@ -166,27 +173,35 @@ def main():
             length = 1
             mask = [mask]
         
-        pre_list = []
+        picture_rank = []
         for m in range(length):
             # Use either one or the other mask
             prod = cv.bitwise_not(mask[m]) * bg_mask[m]
             prod = prod.astype(np.uint8)
 
             # Extract the features
-            descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
-            descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
+            #descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            #descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
             #descriptor_3 = compute_hog(img, prod, 2)
-            #descriptor_4 = compute_dct(img, 8, 64)
-             
-            print(np.shape(descriptor_1))
-            descriptor = descriptor_1 + descriptor_2
-            
-            # Search the query in the DB
-            rank = search([descriptor], database, DIST_METRIC, K)
-            print(rank)
-            pre_list.append(rank)
+            #descriptor_4 = compute_dct(img_gray, 8, 64, 128)
+            descriptor_5 = compute_SIFT(img_gray, None, None, SIZE)
 
-        final_ranking.append(pre_list)
+            descriptor = descriptor_5
+            
+            # Search the query in the DB according to the descriptor
+            if SEARCH_METHOD == 1:
+                painting_rank = search([descriptor], database, DIST_METRIC, K)
+            elif SEARCH_METHOD == 2:
+                painting_rank = search_matches(descriptor, database, K)
+            
+            print("RANK:")
+            print(painting_rank)
+            picture_rank.append(painting_rank)
+            print("picture_rank:")
+            print(picture_rank)
+            picture_rank.append(painting_rank)
+
+        final_ranking.append(picture_rank)
         i += 1
 
     # Print the final ranking
