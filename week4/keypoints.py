@@ -24,15 +24,59 @@ def compute_SIFT_kp_and_des(img, bg_mask, text_mask, sift, size):
 
     return kp, des
 
+def SIFT_descriptor(im_gray, bg_mask, text_mask, sift, size, pre_list, flann):
+    # Compute SIFT keypoints and descriptors
+    kp, des_q = compute_SIFT_kp_and_des(im_gray, bg_mask, text_mask, sift, size)
+    """
+    cv.imshow("mask", bg_mask[m])
+    cv.waitKey(0)
+    cv.destroyAllWindows()
 
-COLORSPACE = cv.COLOR_BGR2HSV
-K = 5
-size = 128
+    cv.imshow("mask", text_mask[m])
+    cv.waitKey(0)
+    cv.destroyAllWindows()
+    """
 
-descriptors_db = []
-keypoints_db = []
-final_ranking = []
+    matches_final = np.zeros(279)
+    h = 0
 
+    for f in sorted(glob.glob('../database/*.jpg')):
+        """
+        im_db = cv.imread(f, cv.IMREAD_COLOR)
+        im_db = cv.resize(im_db, (512,512))
+        im_db = cv.medianBlur(im_db, 3)
+        img_gray_db = cv.cvtColor(im_db,cv.COLOR_BGR2GRAY)
+        """
+
+        matches = flann.knnMatch(descriptors_db[h], des_q, k=2)
+
+        # Need to draw only good matches, so create a mask
+        matchesMask = [[0,0] for l in range(len(matches))]
+
+        # ratio test as per Lowe's paper
+        matches_good = 0
+
+        for k,(m,n) in enumerate(matches):
+            if m.distance < 0.55*n.distance:
+                matchesMask[k]=[1,0]
+                matches_good += 1
+
+        # Number of "true" matches
+        matches_final[h] = matches_good
+        h+=1
+
+    #pre_list.append([np.argmax(matches_final)])
+    # Get K paintings from the database with more matches
+    topK_matches = (-matches_final).argsort()[:K]
+    pre_list.append(topK_matches.tolist())
+
+    print("Query: " + str(q))
+    print("Most similar image: " + str(np.argmax(matches_final)))
+    print("Number of matches: " + str(np.amax(matches_final)))
+
+    return pre_list
+
+############### SIFT SETTINGS ###################
 # Create SIFT object
 sift = cv.xfeatures2d.SIFT_create()
 
@@ -41,6 +85,18 @@ FLANN_INDEX_KDTREE = 1
 index_params = dict(algorithm = FLANN_INDEX_KDTREE, trees = 5)
 search_params = dict(checks=50)   # or pass empty dictionary
 flann = cv.FlannBasedMatcher(index_params,search_params)
+######################################################
+
+QUERY_SET = 'qsd1_w4'
+qs_l = '../qs/' + QUERY_SET + '/*.jpg'
+
+COLORSPACE = cv.COLOR_BGR2HSV
+K = 5
+size = 128
+
+descriptors_db = []
+keypoints_db = []
+final_ranking = []
 
 i = 0
 for f in sorted(glob.glob('../database/*.jpg')):
@@ -54,8 +110,6 @@ for f in sorted(glob.glob('../database/*.jpg')):
         i+=1
 
 q = 0
-QUERY_SET = 'qsd1_w3'
-qs_l = '../qs/' + QUERY_SET + '/*.jpg'
 
 for f in sorted(glob.glob(qs_l)):
     # Read image 
@@ -69,6 +123,7 @@ for f in sorted(glob.glob(qs_l)):
      # Compute background and text masks
     bg_mask,_ = compute_mask(im, "prova" + name, 'qsd1w4')
     text_mask = find_text(im_gray, bg_mask, "provatext" + name)
+
     # Check whether the image contains two paintings
     length = np.shape(bg_mask)[0]
 
@@ -79,40 +134,9 @@ for f in sorted(glob.glob(qs_l)):
 
     pre_list = []
     for m in range(length):
-        # Compute SIFT keypoints and descriptors
-        kp, des_q = compute_SIFT_kp_and_des(im_gray, None, text_mask[m], sift, size)
 
-        matches_final = np.zeros(279)
-        h = 0
+        pre_list = SIFT_descriptor(im_gray, bg_mask[m], text_mask[m], sift, size, pre_list, flann)
 
-        for f in sorted(glob.glob('../database/*.jpg')):
-
-            matches = flann.knnMatch(descriptors_db[h], des_q, k=2)
-
-            # Need to draw only good matches, so create a mask
-            matchesMask = [[0,0] for l in range(len(matches))]
-
-            # ratio test as per Lowe's paper
-            matches_good = 0
-
-            for k,(m,n) in enumerate(matches):
-                if m.distance < 0.7*n.distance:
-                    matchesMask[k]=[1,0]
-                    matches_good += 1
-
-            # Number of "true" matches
-            matches_final[h] = matches_good
-            h+=1
-
-        #pre_list.append([np.argmax(matches_final)])
-        # Get K paintings from the database with more matches
-        topK_matches = (-matches_final).argsort()[:K]
-        pre_list.append(topK_matches.tolist())
-
-        print("Query: " + str(q))
-        print("Most similar image: " + str(np.argmax(matches_final)))
-        print("Number of matches: " + str(np.amax(matches_final)))
-    
     final_ranking.append(pre_list)
     q+=1
 
