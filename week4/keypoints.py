@@ -9,8 +9,9 @@ import pickle
 import ml_metrics
 
 COLORSPACE = cv.COLOR_BGR2HSV
-K = 1
+K = 5
 size = 128
+max_matches = np.zeros(K)
 def compute_SIFT_kp_and_des(img, bg_mask, text_mask, sift, size):
 
     # Resize to speed up execution
@@ -123,7 +124,11 @@ for f in sorted(glob.glob(qs_l)):
             matches_final[h] = matches_good
             h+=1
 
-        pre_list.append([np.argmax(matches_final)])
+        #pre_list.append([np.argmax(matches_final)])
+        # Get K paintings from the database with more matches
+        topK_matches = (-matches_final).argsort()[:K]
+        pre_list.append(topK_matches.tolist())
+
         print("Query: " + str(q))
         print("Most similar image: " + str(np.argmax(matches_final)))
         print("Number of matches: " + str(np.amax(matches_final)))
