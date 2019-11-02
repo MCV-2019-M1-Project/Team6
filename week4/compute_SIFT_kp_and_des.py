@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 
-def compute_SIFT(img, bg_mask, text_mask, size):
+def compute_SIFT(img, merged_mask, size):
 
     # Create SIFT object
     sift = cv.xfeatures2d.SIFT_create()
@@ -9,12 +9,9 @@ def compute_SIFT(img, bg_mask, text_mask, size):
     # Resize to speed up execution
     img = cv.resize(img, (size,size))
 
-    if bg_mask is not None:
-        bg_mask = cv.resize(bg_mask, (size, size))
-        text_mask = cv.resize(text_mask, (size, size))
-        prod = cv.bitwise_not(text_mask) * bg_mask
-        prod = prod.astype(np.uint8)
-        kp, des = sift.detectAndCompute(img, prod)
+    if merged_mask is not None:
+        merged_mask = cv.resize(merged_mask, (size,size))
+        kp, des = sift.detectAndCompute(img, merged_mask)
     else:
         kp, des = sift.detectAndCompute(img, None)
 
