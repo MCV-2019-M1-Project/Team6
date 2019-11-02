@@ -144,15 +144,17 @@ def main():
         #mask, pred_coords = text_removal_mask(img_gray, name, kernel, post_kernel, num_cols, coords, bg_mask, QUERY_SET)
         
         if bg_mask is not None:
-            mask = find_text(img_gray, bg_mask, name)
+            mask = find_text(img_gray, bg_mask, name, 'remove')
+            mask_find = find_text(img_gray, bg_mask, name, 'find')
         else:
             bg_mask = [np.ones((img_gray.shape[0],img_gray.shape[1]))]
-            mask = find_text(img_gray, bg_mask, name)
+            mask = find_text(img_gray, bg_mask, name, 'remove')
+            mask_find = find_text(img_gray, bg_mask, name, 'find')
         
         #mask = bg_mask # No text removal mask
 
         #TEXT DETECTION
-        final_authors, found_text = get_text(img_gray, mask, database_txt)
+        final_authors, found_text = get_text(img_gray, mask_find, database_txt)
         qst_txt.append( final_authors )
         print(found_text[0])
         file_auth =  open('../qs/' + QUERY_SET + '/author_' + str(i) + '.txt','w') 

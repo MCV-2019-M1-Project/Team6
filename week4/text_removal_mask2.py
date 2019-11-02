@@ -5,7 +5,21 @@ import os
 import numpy as np
 from matplotlib import pyplot as plt
 
-def find_text(img, background_mask, name):
+def find_text(img, background_mask, name, option):
+    
+    #Option find is used previous to read the text in the image, whereas option remove should be used when text needs to be completely removed from it
+    if option == 'find':
+        max_aspect_ratio = 0.7
+        min_aspect_ratio = 1/15
+        min_occupancy_ratio = 0.5
+        min_compactness_ratio = 0.0022
+        th=0.004
+    if option == 'remove':
+        max_aspect_ratio = 0.6
+        min_aspect_ratio = 1/20
+        min_occupancy_ratio = 0.4
+        min_compactness_ratio = 0.002
+        th=0.005
 
     #Image pre-processing: the difference betwen the image opening and closing is computed
     kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (2*6-1, 2*6-1))
@@ -21,7 +35,7 @@ def find_text(img, background_mask, name):
     hist = cv.calcHist([img_lowpass], [0], None, [256], [0, 255])/npx
     prob=0
     i=0
-    while(prob<0.004):
+    while(prob<th):
         prob += hist[255-i][0]
         i+=1
     th=255-i
@@ -49,10 +63,6 @@ def find_text(img, background_mask, name):
         min_size = npx/(20*20)
     else:
         min_size = npx/(15*15)
-    max_aspect_ratio = 0.7
-    min_aspect_ratio = 1/15
-    min_occupancy_ratio = 0.5
-    min_compactness_ratio = 0.002
     coords = []
 
     for i in range(1, num+1):
@@ -78,15 +88,22 @@ def find_text(img, background_mask, name):
             else:
                 coords.append((x,y,w,h,size))
     
-    """
-    cv.imshow("img_binary", labels*255)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-    """
+    # cv.namedWindow('img_binary',cv.WINDOW_NORMAL)
+    # cv.resizeWindow('img_binary', 600,600)
+    # cv.imshow("img_binary", labels*255)
+    # cv.waitKey(0)
+    # cv.destroyAllWindows()
+    
     #Creating the expected number of masks by keeping the biggest bounding boxes
     coords.sort(key=lambda x:x[4], reverse=True)
     masks = []
-    for i in range(np.shape(background_mask)[0]):
+
+    if option == 'find':
+        length = np.shape(background_mask)[0]
+    if option == 'remove':
+        length = max(len(coords),np.shape(background_mask)[0])
+
+    for i in range(length):
         if len(coords)>0:
             (x,y,w,h,size) = coords.pop(0)
             m = np.zeros((height,width),np.uint8)
@@ -95,6 +112,23 @@ def find_text(img, background_mask, name):
         else:
             m = np.zeros((height,width),np.uint8)
             masks.append(np.uint8(m))
+
+        # cv.namedWindow('mask',cv.WINDOW_NORMAL)
+        # cv.resizeWindow('mask', 600,600)
+        # cv.imshow("mask", masks[i])
+        # cv.waitKey(0)
+        # cv.destroyAllWindows()
+
+
+    if option == 'remove':
+        total_mask=np.zeros((height,width),np.uint8)
+        total_masks = []
+        for i in range(len(masks)):
+            total_mask+=masks[i]
+        for i in range(np.shape(background_mask)[0]):
+            total_masks.append(total_mask)
+        return total_masks
+
     
     #Matching text mask to background mask (only if the image contains 2 or more paintings)
     #NOT FINISHED!!!
@@ -104,15 +138,11 @@ def find_text(img, background_mask, name):
     # if np.shape(background_mask)[0]>1:
     #     for i in range(np.shape(background_mask)[0]):
     #         moments = cv.moments(background_mask[i])
-    #         cx = int(moments["m10"] / moments["m00"])
-	#         cy = int(moments["m01"] / moments["m00"])
-    #         for j 
-    #         distance = math.sqrt(((cx-(x+w/2))**2)+((cy-(y+h/2))**2))
-    """
-    cv.imshow("mask", masks[0])
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-    """
+    #         cx[i] = int(moments["m10"] / moments["m00"])
+	#         cy[i] = int(moments["m01"] / moments["m00"])
+
+    #     if math.sqrt(((cx[i]-(x+w/2))**2)+((cy[i]-(y+h/2))**2)) < math.sqrt(((cx[i]-(x+w/2))**2)+((cy[i]-(y+h/2))**2))
+
     return masks
 
 # for f in sorted(glob.glob(qs_l)):
