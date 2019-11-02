@@ -1,7 +1,7 @@
 import cv2 as cv
 import numpy as np
 
-def search_matches(queries, database, K):
+def search_matches_FLANN(queries, database, K):
 
     # Set up FLANN based matcher
     # FLANN parameters
@@ -26,7 +26,7 @@ def search_matches(queries, database, K):
         matches_good = 0
         # ratio test as per Lowe's paper
         for k,(m,n) in enumerate(matches):
-            if m.distance < 0.7*n.distance:
+            if m.distance < 0.55*n.distance:
                 matchesMask[k]=[1,0]
                 matches_good += 1
 
@@ -37,4 +37,32 @@ def search_matches(queries, database, K):
     topK_matches = (-matches_final).argsort()[:K]
 
     return topK_matches.tolist()
+
+def search_matches_ORBS(queries, database, K):
+    
+    # create BFMatcher object
+    bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
+
+    matches_final = np.zeros(len(database))
+    
+    for i in range(len(database)):
+        # Match descriptors
+        matches = bf.match(database[i],queries)
+
+        # Sort matches in the order of their distance
+        matches = sorted(matches, key = lambda x:x.distance)
+
+        matches_good = 0
+        for m in matches:
+            if m.distance < 70.0:
+                matches_good += 1
+        print(matches_good)
+        # Number of "true" matches
+        matches_final[i] = matches_good
+
+    # Get K paintings from the database with more matches
+    topK_matches = (-matches_final).argsort()[:K]
+
+    return topK_matches.tolist()
+
     
