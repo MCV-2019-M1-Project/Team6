@@ -26,8 +26,9 @@ from compute_lbp import compute_lbp
 from compute_hog import compute_hog
 from compute_dct import compute_dct
 from get_text import get_text
-from compute_SIFT_kp_and_des import compute_SIFT
-from search_matches import search_matches
+from compute_SIFT import compute_SIFT
+from search_matches import search_matches_FLANN
+from search_matches import search_matches_ORBS
 
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
@@ -181,6 +182,11 @@ def main():
             prod = cv.bitwise_not(mask[m]) * bg_mask[m]
             prod = prod.astype(np.uint8)
 
+            _, prod = cv.threshold(prod,0,255,cv.THRESH_BINARY)
+            cv.imwrite('masks/' + name + '_' + str(m) + '_text.png', cv.bitwise_not(mask[m]))
+            cv.imwrite('masks/' + name + '_' + str(m) + '_bg.png', bg_mask[m])
+            cv.imwrite('masks/' + name + '_' + str(m) + '_merged.png', prod)
+            
             # Extract the features
             #descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
             #descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
@@ -194,7 +200,7 @@ def main():
             if SEARCH_METHOD == 1:
                 painting_rank = search([descriptor], database, DIST_METRIC, K)
             elif SEARCH_METHOD == 2:
-                painting_rank = search_matches(descriptor, database, K)
+                painting_rank = search_matches_FLANN(descriptor, database, K)
             
             print("RANK:")
             print(painting_rank)
