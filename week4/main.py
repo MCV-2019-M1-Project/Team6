@@ -71,7 +71,7 @@ def main():
         #descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
         #descriptor_3 = compute_hog(img, None, 2)
         #descriptor_4 = compute_dct(img_gray, 8, 64, 128)
-        descriptor_5 = compute_SIFT(img_gray, None, None, SIZE)
+        descriptor_5 = compute_SIFT(img_gray, None, SIZE)
 
         descriptor = descriptor_5
 
@@ -184,7 +184,7 @@ def main():
             #descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
             #descriptor_3 = compute_hog(img, prod, 2)
             #descriptor_4 = compute_dct(img_gray, 8, 64, 128)
-            descriptor_5 = compute_SIFT(img_gray, None, None, SIZE)
+            descriptor_5 = compute_SIFT(img_gray, prod, SIZE)
 
             descriptor = descriptor_5
             
