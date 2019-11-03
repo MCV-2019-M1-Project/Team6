@@ -102,11 +102,11 @@ def main():
 
     # Evaluation metrics storing arrays
     qs_l = '../qs/' + QUERY_SET + '/*.jpg'
-    nqueries = 30
-    precision = np.zeros(30)
-    recall = np.zeros(30)
-    fscore = np.zeros(30)
-    iou = np.zeros(30)
+    nqueries = 50
+    precision = np.zeros(nqueries)
+    recall = np.zeros(nqueries)
+    fscore = np.zeros(nqueries)
+    iou = np.zeros(nqueries)
 
     # Read and process the queries
     final_ranking = []
@@ -246,7 +246,7 @@ def main():
             
 
     # Print the evaluation metrics
-    if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qsd1_w4'or QUERY_SET == 'qst1_w4':
+    if QUERY_SET == 'qsd1_w2' or QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd1_w3' or QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qsd1_w4':
 
         print('Query set has ' + str(nqueries) + ' images')
         print('Precision: ' + str(np.mean(precision)))
@@ -314,7 +314,6 @@ def main():
                 F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
             print('F1 score:')
             print(F1)
-
 
 
     ## WRITE OUTPUT FILES ##
