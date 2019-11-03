@@ -127,6 +127,7 @@ def find_text(img, background_mask, name, option):
             total_mask+=masks[i]
         for i in range(np.shape(background_mask)[0]):
             total_masks.append(total_mask)
+
         return total_masks
 
     

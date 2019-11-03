@@ -10,15 +10,15 @@ def search_matches_FLANN(queries, database, K):
     search_params = dict(checks=50)   # or pass empty dictionary
     flann = cv.FlannBasedMatcher(index_params,search_params)
 
-    print("Database")
     j=0
     matches_final = np.zeros(len(database))
     
 
     for i in range(len(database)):
         matches = flann.knnMatch(database[i], queries, k=2)
-        print(np.shape(database[i]))
-        print(np.shape(queries))
+    
+        #print(np.shape(database[i]))
+        #print(np.shape(queries))
 
         # Need to draw only good matches, so create a mask
         matchesMask = [[0,0] for l in range(len(matches))]
@@ -26,17 +26,28 @@ def search_matches_FLANN(queries, database, K):
         matches_good = 0
         # ratio test as per Lowe's paper
         for k,(m,n) in enumerate(matches):
-            if m.distance < 0.55*n.distance:
+            if m.distance < 0.65*n.distance:
                 matchesMask[k]=[1,0]
                 matches_good += 1
 
         # Number of "true" matches
         matches_final[i] = matches_good
+    
+    print(matches_final)
+    topK_matches = (-matches_final).argsort()
+    topK_dists = np.abs(sorted(-matches_final))
 
-    # Get K paintings from the database with more matches
-    topK_matches = (-matches_final).argsort()[:K]
+    if( (topK_dists[0] - topK_dists[1]) < 60 ):
+        # Not belonging to DB
+        topK_matches = []
+        for n in range(0,K):
+            topK_matches.append(-1)
+    else:
+        # Get K paintings from the database with more matches
+        topK_matches = (-matches_final).argsort()[:K]
+        topK_matches = topK_matches.tolist()
 
-    return topK_matches.tolist()
+    return topK_matches
 
 def search_matches_ORBS(queries, database, K):
     

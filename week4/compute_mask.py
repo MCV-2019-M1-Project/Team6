@@ -129,12 +129,21 @@ def compute_mask(img, name, qs):
     
     #If two paintings, return 2 masks
     if(np.shape(hier)[1] == 2):
-        mask_right = np.zeros_like(mask)
-        mask_left = np.zeros_like(mask)
-        cv.fillPoly(mask_right, pts =[contours[0]], color=(255,255,255))
-        cv.fillPoly(mask_left, pts =[contours[1]], color=(255,255,255))
-        bg_mask = [mask_left, mask_right]
+        mask_1 = np.zeros_like(mask)
+        mask_0 = np.zeros_like(mask)
+        cv.fillPoly(mask_1, pts =[contours[0]], color=(255,255,255))
+        cv.fillPoly(mask_0, pts =[contours[1]], color=(255,255,255))
+
+        indices_0 = np.where(mask_0 != [0])
+        indices_1 = np.where(mask_1 != [0])
+
+        if(indices_0[0].size != 0 and indices_0[1].size !=0 and indices_1[0].size != 0 and indices_1[1].size !=0 ):
+            if( min(indices_0[1]) < min(indices_1[1]) ):
+                bg_mask = [mask_0, mask_1]
+            else:
+                bg_mask = [mask_1, mask_0]
+        
     else:
-        bg_mask= [mask]
+        bg_mask = [mask]
 
     return bg_mask, eval_metrics
