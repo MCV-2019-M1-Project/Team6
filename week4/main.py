@@ -157,8 +157,8 @@ def main():
 
         #TEXT DETECTION
         prob_paintings, found_text = get_text(img_gray, mask_find, database_txt)
-        print('Prob paintings:')
-        print(prob_paintings)
+        #print('Prob paintings:')
+        #print(prob_paintings)
         #qst_txt.append( final_authors )
         # print(found_text[0])
         # file_auth =  open('../qs/' + QUERY_SET + '/author_' + str(i) + '.txt','w') 
@@ -174,8 +174,6 @@ def main():
 
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
-        print('Length:')
-        print(length)
         if length > 2:
             length = 1
             mask = [mask]
@@ -208,7 +206,7 @@ def main():
             descriptor = descriptor_5
             
             # Reduce database if text descriptor is used
-            if len(prob_paintings[m])>0 and TEXT_DESCRIPTOR == True:
+            if len(prob_paintings[m]) > 0 and TEXT_DESCRIPTOR == True:
                 reduced_db = []
                 for ind in range(len(prob_paintings[m])):
                     reduced_db.append(database[prob_paintings[m][ind]])
@@ -314,7 +312,7 @@ def main():
 
             if (pixel_precision+pixel_sensitivity != 0):
                 F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
-
+            print('F1 score:')
             print(F1)
 
 
