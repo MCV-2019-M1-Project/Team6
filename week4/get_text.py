@@ -29,32 +29,52 @@ def get_text(img_gray, masks, database_txt):
 
             if( text == '' ):
                 # Text is empty, nothing to do
-                found_text.append('#################')
+                found_text.append('')
             else :
                 # Search for closest authors in the ddbb
                 dists = []
                 for db in database_txt:
                     dists.append(Levenshtein.distance(text, db))
 
-                # Return the first 10 paintings by the closest author
-                index = np.argmin(dists)
-                found_text.append(database_txt[index])
-
+                # Add the closest author to found_text
+                if min(dists)<5:
+                    index = np.argmin(dists)
+                    print('Min dist:')
+                    print(min(dists))
+                    found_text.append(database_txt[index])
+                else:
+                    found_text.append('')
         else:
-            found_text.append('#################')
+            found_text.append('')
 
-    final_authors = []
+    paintings=[]
     for author in found_text:
-        authors = []
+        author_paintings = []
         j = 0
         for db in database_txt:
             if(db == author):
-                authors.append(j)
+                author_paintings.append(j)
             j += 1
-        random.shuffle(authors)
-        final_authors.append(authors[:10])
+        j = 0
+        while len(author_paintings)>0 and len(author_paintings)<10:
+            if j in author_paintings:
+                j+=1
+            else:
+                author_paintings.append(j)
+        paintings.append(author_paintings)
+
+    # final_authors = []
+    # for author in found_text:
+    #     authors = []
+    #     j = 0
+    #     for db in database_txt:
+    #         if(db == author):
+    #             authors.append(j)
+    #         j += 1
+    #     random.shuffle(authors)
+    #     final_authors.append(authors[:10])
 
     #print(found_text)
-    return final_authors, found_text
+    return paintings, found_text
 
 
