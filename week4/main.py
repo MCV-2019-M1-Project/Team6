@@ -50,6 +50,7 @@ QUERY_SET= cfg['queryset']  # Input query set
 K = 1                       # find K closest images
 SIZE = 512
 SEARCH_METHOD = 2           # 1 for normal descriptors (distance) and 2 for keypoints matches (FLANN)
+TEXT_DESCRIPTOR = False
 
 def main():
 
@@ -155,19 +156,21 @@ def main():
         #mask = bg_mask # No text removal mask
 
         #TEXT DETECTION
-        final_authors, found_text = get_text(img_gray, mask_find, database_txt)
-        qst_txt.append( final_authors )
-        print(found_text[0])
-        file_auth =  open('../qs/' + QUERY_SET + '/author_' + str(i) + '.txt','w') 
-        print(len(found_text))
-        if len(found_text) == 1:
-            print(found_text[0], file = file_auth)
-        else:
-            print(found_text[1])
-            print(found_text[1], file = file_auth)
-            print(found_text[0], file = file_auth)
+        prob_paintings, found_text = get_text(img_gray, mask_find, database_txt)
+        print('Prob paintings:')
+        print(prob_paintings)
+        #qst_txt.append( final_authors )
+        # print(found_text[0])
+        # file_auth =  open('../qs/' + QUERY_SET + '/author_' + str(i) + '.txt','w') 
+        # print(len(found_text))
+        # if len(found_text) == 1:
+        #     print(found_text[0], file = file_auth)
+        # else:
+        #     print(found_text[1])
+        #     print(found_text[1], file = file_auth)
+        #     print(found_text[0], file = file_auth)
         
-        file_auth.close()
+        # file_auth.close()
 
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
@@ -204,13 +207,25 @@ def main():
 
             descriptor = descriptor_5
             
+            # Reduce database if text descriptor is used
+            if len(prob_paintings[m])>0 and TEXT_DESCRIPTOR == True:
+                reduced_db = []
+                for ind in range(len(prob_paintings[m])):
+                    reduced_db.append(database[prob_paintings[m][ind]])
+            else:
+                reduced_db = database
+
             # Search the query in the DB according to the descriptor
             if SEARCH_METHOD == 1:
-                painting_rank = search([descriptor], database, DIST_METRIC, K)
+                painting_rank = search([descriptor], reduced_db, DIST_METRIC, K)
             elif SEARCH_METHOD == 2:
-                painting_rank = search_matches_FLANN(descriptor, database, K)
+                painting_rank = search_matches_FLANN(descriptor, reduced_db, K)
             
-
+            if len(prob_paintings[m])>0 and TEXT_DESCRIPTOR == True:
+                rank = []
+                for i in painting_rank:
+                    rank.append(prob_paintings[m][i])
+                painting_rank = rank
             print(painting_rank)
             picture_rank.append(painting_rank)
 
@@ -228,8 +243,8 @@ def main():
     print(len(final_ranking))
     print(final_ranking)
 
-    print('AUTHORS:')
-    print(qst_txt)
+    # print('AUTHORS:')
+    # print(qst_txt)
             
 
     # Print the evaluation metrics
@@ -246,10 +261,10 @@ def main():
         #mapk_ = ml_metrics.mapk(gt, final_ranking, K)
         print('MAP@K = '+ str(mapk_))
 
-        if qst_txt != []:
-            mapk_ = np.mean([ml_metrics.mapk([a],p,K) for a,p in zip(gt, qst_txt)])
-            #mapk_ = ml_metrics.mapk(gt, final_ranking, K)
-            print('MAP@K text = '+ str(mapk_))
+        # if qst_txt != []:
+        #     mapk_ = np.mean([ml_metrics.mapk([a],p,K) for a,p in zip(gt, qst_txt)])
+        #     #mapk_ = ml_metrics.mapk(gt, final_ranking, K)
+        #     print('MAP@K text = '+ str(mapk_))
 
         if QUERY_SET == 'qsd1_w4' or QUERY_SET == 'qs_guasa':
             
