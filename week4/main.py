@@ -47,8 +47,8 @@ DIVISIONS = cfg['divs']     # Number of divisions per dimension [2,4,8,...]
 DIST_METRIC= cfg['dist']    #'euclidean' 'chisq' or 'hellinger'
 BG_REMOVAL = cfg['bgrm']    # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset']  # Input query set
-K = 10                      # find K closest images
-SIZE = 128
+K = 1                       # find K closest images
+SIZE = 512
 SEARCH_METHOD = 2           # 1 for normal descriptors (distance) and 2 for keypoints matches (FLANN)
 
 def main():
@@ -131,7 +131,7 @@ def main():
             bg_mask = None
 
         # BACKGROUND REMOVAL
-        elif QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qst2_w3' or QUERY_SET == 'qsd1_w4'or QUERY_SET == 'qst1_w4':
+        elif QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qst2_w3' or QUERY_SET == 'qsd1_w4' or QUERY_SET == 'qst1_w4' or QUERY_SET == 'qs_guasa':
             bg_mask, eval_metrics = compute_mask(img,name,QUERY_SET)
 
             if eval_metrics is not None:
@@ -171,6 +171,7 @@ def main():
 
         # Iterate the masks (1 or 2 according to the images)
         length = np.shape(mask)[0]
+        print('Length:')
         print(length)
         if length > 2:
             length = 1
@@ -187,6 +188,13 @@ def main():
             cv.imwrite('masks/' + name + '_' + str(m) + '_bg.png', bg_mask[m])
             cv.imwrite('masks/' + name + '_' + str(m) + '_merged.png', prod)
             
+            """
+            img_show = cv.resize(cv.bitwise_and(img_gray, prod), (512,512))
+            cv.imshow('window',  img_show)
+            cv.waitKey()
+            cv.destroyAllWindows()
+            """
+
             # Extract the features
             #descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
             #descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
@@ -202,12 +210,15 @@ def main():
             elif SEARCH_METHOD == 2:
                 painting_rank = search_matches_FLANN(descriptor, database, K)
             
-            print("RANK:")
+
             print(painting_rank)
             picture_rank.append(painting_rank)
+
+            """
             print("picture_rank:")
             print(picture_rank)
             picture_rank.append(painting_rank)
+            """
 
         final_ranking.append(picture_rank)
         i += 1
@@ -239,6 +250,58 @@ def main():
             mapk_ = np.mean([ml_metrics.mapk([a],p,K) for a,p in zip(gt, qst_txt)])
             #mapk_ = ml_metrics.mapk(gt, final_ranking, K)
             print('MAP@K text = '+ str(mapk_))
+
+        if QUERY_SET == 'qsd1_w4' or QUERY_SET == 'qs_guasa':
+            
+            for i in range(0,len(gt)):
+                for j in range(0,len(gt[i])):
+                    if(gt[i][j] == -1):
+                        gt[i][j] = 1
+                    else:
+                        gt[i][j] = 0
+            pred = []
+            for i in range(0,len(final_ranking)):
+                
+                if( len(final_ranking[i]) == 1 ):
+                    if(final_ranking[i][0][0] == -1):
+                        pred.append([1])
+                    else:
+                        pred.append([0])
+                else:
+                    p=[]
+                    for j in range(0, len(final_ranking[i])):
+                        if(final_ranking[i][j][0] == -1):
+                            p.append(1)
+                        else:
+                            p.append(0)
+                    pred.append([p[0], p[1]])
+
+            print(pred)
+
+            gt = (np.hstack(gt))
+            pred = (np.hstack(pred))
+
+            print(gt)
+            print(pred)
+
+            pixelTP = np.sum(gt & pred)
+            pixelFP = np.sum(gt & (pred==0))
+            pixelFN = np.sum((gt==0) & pred)
+            pixelTN = np.sum((gt==0) & (pred==0))
+
+            pixel_precision = 0
+            pixel_sensitivity = 0
+            F1 = 0
+            if (pixelTP+pixelFP) != 0:
+                pixel_precision   = float(pixelTP) / float(pixelTP+pixelFP)
+            if (pixelTP+pixelFN) != 0:
+                pixel_sensitivity = float(pixelTP) / float(pixelTP+pixelFN)
+
+            if (pixel_precision+pixel_sensitivity != 0):
+                F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
+
+            print(F1)
+
 
 
     ## WRITE OUTPUT FILES ##
