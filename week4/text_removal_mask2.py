@@ -2,6 +2,7 @@
 import cv2 as cv
 import glob
 import os
+import math
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -97,7 +98,8 @@ def find_text(img, background_mask, name, option):
     #Creating the expected number of masks by keeping the biggest bounding boxes
     coords.sort(key=lambda x:x[4], reverse=True)
     masks = []
-
+    tx = []
+    ty = []
     if option == 'find':
         length = np.shape(background_mask)[0]
     if option == 'remove':
@@ -109,6 +111,8 @@ def find_text(img, background_mask, name, option):
             m = np.zeros((height,width),np.uint8)
             m[y:y + h, x:x + w] = 255
             masks.append(np.uint8(m))
+            tx.append((x+w)/2)
+            ty.append((y+h)/2)
         else:
             m = np.zeros((height,width),np.uint8)
             masks.append(np.uint8(m))
@@ -131,17 +135,24 @@ def find_text(img, background_mask, name, option):
 
     
     #Matching text mask to background mask (only if the image contains 2 or more paintings)
-    #NOT FINISHED!!!
-    #The idea is to compute each mask's center of mass (cx,cy) and calculate the distance with each bounding box center(x+w/2, y+h/2)
-    #in order to match text mask with background mask, that is, to put them in the same order in the list
-    #MAYBE WE CAN DO IT FOR MAX 2 PICTURES THIS WEEK SO THAT IT IS MUCH EASIER?
-    # if np.shape(background_mask)[0]>1:
-    #     for i in range(np.shape(background_mask)[0]):
-    #         moments = cv.moments(background_mask[i])
-    #         cx[i] = int(moments["m10"] / moments["m00"])
-	#         cy[i] = int(moments["m01"] / moments["m00"])
+    if np.shape(background_mask)[0]>1:
+        cx = np.zeros(2)
+        cy = np.zeros(2)
+        for i in range(np.shape(background_mask)[0]):
+            moments = cv.moments(background_mask[i])
+            cx[i]=int(moments["m10"]/moments["m00"])
+            cy[i]=int(moments["m01"]/moments["m00"])
+        if np.sum(masks[0])!=0 and np.sum(masks[1])!=0:
+            if math.sqrt(((cx[0]-tx[0])**2)+((cy[0]-ty[0])**2)) + math.sqrt(((cx[1]-tx[1])**2)+((cy[1]-ty[1])**2)) > math.sqrt(((cx[0]-tx[1])**2)+((cy[0]-ty[1])**2)) + math.sqrt(((cx[1]-tx[0])**2)+((cy[1]-ty[0])**2)):
+                aux = masks[0]
+                masks[0] = masks[1]
+                masks[1] = aux
+        else:
+            if math.sqrt(((cx[0]-tx[0])**2)+((cy[0]-ty[0])**2)) > math.sqrt(((cx[1]-tx[0])**2)+((cy[1]-ty[0])**2)):
+                aux = masks[0]
+                masks[0] = masks[1]
+                masks[1] = aux
 
-    #     if math.sqrt(((cx[i]-(x+w/2))**2)+((cy[i]-(y+h/2))**2)) < math.sqrt(((cx[i]-(x+w/2))**2)+((cy[i]-(y+h/2))**2))
 
     return masks
 
