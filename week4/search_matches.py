@@ -12,7 +12,11 @@ def search_matches_FLANN(queries, database, K):
 
     j=0
     matches_final = np.zeros(len(database))
-    
+    if queries is None: 
+        topK_matches = []
+        for n in range(0,K):
+            topK_matches.append(-1)
+        return topK_matches
 
     for i in range(len(database)):
         matches = flann.knnMatch(database[i], queries, k=2)
@@ -34,9 +38,26 @@ def search_matches_FLANN(queries, database, K):
         matches_final[i] = matches_good
     
     #print(matches_final)
-    topK_matches = (-matches_final).argsort()
+    topK_matches = []
+    topK_matches_prov = (-matches_final).argsort()[:K]
     topK_dists = np.abs(sorted(-matches_final))
 
+    passed = False
+    zero_passed = False
+    for i in topK_matches_prov:
+        if ( (topK_dists[0] - topK_dists[1]) < 60 and not zero_passed):
+            topK_matches.append(-1)
+            zero_passed = True
+            passed = True
+            continue
+
+        if( matches_final[i] >= 46 or passed ):
+            topK_matches.append(i)
+        else:
+            passed = True
+            topK_matches.append(-1)
+
+    """
     if( (topK_dists[0] - topK_dists[1]) < 60 ):
         # Not belonging to DB
         topK_matches = []
@@ -46,6 +67,7 @@ def search_matches_FLANN(queries, database, K):
         # Get K paintings from the database with more matches
         topK_matches = (-matches_final).argsort()[:K]
         topK_matches = topK_matches.tolist()
+    """
 
     return topK_matches
 
