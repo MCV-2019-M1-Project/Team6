@@ -27,8 +27,9 @@ from compute_hog import compute_hog
 from compute_dct import compute_dct
 from get_text import get_text
 from compute_SIFT import compute_SIFT
+from compute_SURF import compute_SURF
 from search_matches import search_matches_FLANN
-from search_matches import search_matches_ORBS
+from search_matches import search_matches_BF
 
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
@@ -49,7 +50,7 @@ BG_REMOVAL = cfg['bgrm']    # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset']  # Input query set
 K = 10                      # find K closest images
 SIZE = 512
-SEARCH_METHOD = 2           # 1 for normal descriptors (distance) and 2 for keypoints matches (FLANN)
+SEARCH_METHOD = 3           # 1 for normal descriptors (distance) and 2 for keypoints matches (FLANN)
 TEXT_DESCRIPTOR = False
 
 def main():
@@ -74,6 +75,7 @@ def main():
         #descriptor_3 = compute_hog(img, None, 2)
         #descriptor_4 = compute_dct(img_gray, 8, 64, 128)
         descriptor_5 = compute_SIFT(img_gray, None, SIZE)
+        #descriptor_6 = compute_SURF(img_gray, None, SIZE)
 
         descriptor = descriptor_5
 
@@ -202,6 +204,7 @@ def main():
             #descriptor_3 = compute_hog(img, prod, 2)
             #descriptor_4 = compute_dct(img_gray, 8, 64, 128)
             descriptor_5 = compute_SIFT(img_gray, prod, SIZE)
+            #descriptor_6 = compute_SURF(img_gray, prod, SIZE)
 
             descriptor = descriptor_5
             
@@ -218,6 +221,8 @@ def main():
                 painting_rank = search([descriptor], reduced_db, DIST_METRIC, K)
             elif SEARCH_METHOD == 2:
                 painting_rank = search_matches_FLANN(descriptor, reduced_db, K)
+            elif SEARCH_METHOD == 3:
+                painting_rank = search_matches_BF(descriptor, reduced_db, K)
             
             if len(prob_paintings[m])>0 and TEXT_DESCRIPTOR == True:
                 rank = []
