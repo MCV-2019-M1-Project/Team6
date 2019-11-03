@@ -33,7 +33,7 @@ def search_matches_FLANN(queries, database, K):
         # Number of "true" matches
         matches_final[i] = matches_good
     
-    print(matches_final)
+    #print(matches_final)
     topK_matches = (-matches_final).argsort()
     topK_dists = np.abs(sorted(-matches_final))
 
