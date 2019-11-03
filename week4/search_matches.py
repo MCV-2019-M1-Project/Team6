@@ -49,10 +49,10 @@ def search_matches_FLANN(queries, database, K):
 
     return topK_matches
 
-def search_matches_ORBS(queries, database, K):
+def search_matches_BF(queries, database, K):
     
     # create BFMatcher object
-    bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
+    bf = cv.BFMatcher(cv.NORM_L1, crossCheck=False)
 
     matches_final = np.zeros(len(database))
     
@@ -65,15 +65,29 @@ def search_matches_ORBS(queries, database, K):
 
         matches_good = 0
         for m in matches:
-            if m.distance < 70.0:
+            print(m.distance)
+            if m.distance < 2000:
                 matches_good += 1
-        print(matches_good)
+                print(m.distance)
+        #print(matches_good)
         # Number of "true" matches
         matches_final[i] = matches_good
 
-    # Get K paintings from the database with more matches
-    topK_matches = (-matches_final).argsort()[:K]
+    topK_matches = (-matches_final).argsort()
+    topK_dists = np.abs(sorted(-matches_final))
+    print("DIFFERENCE")
+    print(topK_dists[0] - topK_dists[1])
 
-    return topK_matches.tolist()
+    if( (topK_dists[0] - topK_dists[1]) < 60 ):
+        # Not belonging to DB
+        topK_matches = []
+        for n in range(0,K):
+            topK_matches.append(-1)
+    else:
+        # Get K paintings from the database with more matches
+        topK_matches = (-matches_final).argsort()[:K]
+        topK_matches = topK_matches.tolist()
+
+    return topK_matches
 
     
