@@ -39,8 +39,8 @@ def get_text(img_gray, masks, database_txt):
                 # Add the closest author to found_text
                 if min(dists)<5:
                     index = np.argmin(dists)
-                    print('Min dist:')
-                    print(min(dists))
+                    #print('Min dist:')
+                    #print(min(dists))
                     found_text.append(database_txt[index])
                 else:
                     found_text.append('')
