@@ -22,107 +22,115 @@ def find_text(img, background_mask, name, option):
         min_compactness_ratio = 0.002
         th=0.005
 
-    #Image pre-processing: the difference betwen the image opening and closing is computed
-    kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (2*6-1, 2*6-1))
-    img_opening = cv.morphologyEx(img, cv.MORPH_OPEN, kernel)
-    img_closing = cv.morphologyEx(img, cv.MORPH_CLOSE, kernel)
-    img_enhanced = img_closing - img_opening
-    img_lowpass	= cv.GaussianBlur(img_enhanced, (5,5), 20)
-
-    #Binarization: only the 4% brightest pixels are set to positive
+    masks = []
     height = img.shape[0]
     width = img.shape[1]
     npx =  height*width
-    hist = cv.calcHist([img_lowpass], [0], None, [256], [0, 255])/npx
-    prob=0
-    i=0
-    while(prob<th):
-        prob += hist[255-i][0]
-        i+=1
-    th=255-i
-    ret,img_binary = cv.threshold(img_lowpass,th,255,cv.THRESH_BINARY)
 
-    #Candidate text region extraction
-    kernel = np.ones((15,30), np.uint8)
-    img_dilated = cv.dilate(img_binary,kernel,iterations = 3)
-    kernel = np.ones((10,10), np.uint8)
-    img_eroded = cv.erode(img_dilated,kernel,iterations = 2)
-    img_opening = cv.morphologyEx(img_eroded, cv.MORPH_OPEN, np.ones((15,15), np.uint8))
+    for picture in range(np.shape(background_mask)[0]):
+        #Crop image
+        img = cv.bitwise_and(img, img, mask=background_mask[picture])
 
-    num, labels = cv.connectedComponents(img_opening)
-    sorted_labels = labels.ravel()
-    sorted_labels = np.sort(sorted_labels)
+        #Image pre-processing: the difference betwen the image opening and closing is computed
+        kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (2*6-1, 2*6-1))
+        img_opening = cv.morphologyEx(img, cv.MORPH_OPEN, kernel)
+        img_closing = cv.morphologyEx(img, cv.MORPH_CLOSE, kernel)
+        img_enhanced = img_closing - img_opening
+        img_lowpass	= cv.GaussianBlur(img_enhanced, (5,5), 20)
 
-    labels = np.uint8(labels)
-    """
-    cv.imshow("img_binary", labels*255)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
-    """
-    #Discarting non desired regions
-    if np.shape(background_mask)[0]>1:
-        min_size = npx/(20*20)
-    else:
-        min_size = npx/(15*15)
-    coords = []
+        #Binarization: only the 4% brightest pixels are set to positive
+        hist = cv.calcHist([img_lowpass], [0], None, [256], [0, 255])/npx
+        prob=0
+        i=0
+        while(prob<th and i<256):
+            prob += hist[255-i][0]
+            i+=1
+        th=255-i
+        ret,img_binary = cv.threshold(img_lowpass,th,255,cv.THRESH_BINARY)
 
-    for i in range(1, num+1):
+        #Candidate text region extraction
+        kernel = np.ones((15,30), np.uint8)
+        img_dilated = cv.dilate(img_binary,kernel,iterations = 3)
+        kernel = np.ones((10,10), np.uint8)
+        img_eroded = cv.erode(img_dilated,kernel,iterations = 2)
+        img_opening = cv.morphologyEx(img_eroded, cv.MORPH_OPEN, np.ones((15,15), np.uint8))
 
-        region = labels == i
-        region = np.uint8(region)
-        positions =  np.where(labels == i)
-        size = len(positions[0])
+        cv.namedWindow('img_opening',cv.WINDOW_NORMAL)
+        cv.resizeWindow('img_opening', 600,600)
+        cv.imshow("img_opening", img_opening)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
 
-        if size < min_size:
+        num, labels = cv.connectedComponents(img_opening)
+        sorted_labels = labels.ravel()
+        sorted_labels = np.sort(sorted_labels)
 
-            labels[positions] = 0
-
+        labels = np.uint8(labels)
+        """
+        cv.imshow("img_binary", labels*255)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
+        """
+        #Discarting non desired regions
+        if np.shape(background_mask)[0]>1:
+            min_size = npx/(20*20)
         else:
+            min_size = npx/(15*15)
+        coords = []
 
-            _, contours,_ = cv.findContours(region, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-            contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
-            largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
-            (x,y,w,h) = cv.boundingRect(largest_contour)
-            perimeter = cv.arcLength(largest_contour,True)
-            if h/w>max_aspect_ratio or h/w<min_aspect_ratio or len(positions[0])/(w*h)<min_occupancy_ratio or (w*h)/(perimeter*perimeter)<min_compactness_ratio:
+        for i in range(1, num+1):
+
+            region = labels == i
+            region = np.uint8(region)
+            positions =  np.where(labels == i)
+            size = len(positions[0])
+
+            if size < min_size:
+
                 labels[positions] = 0
+
             else:
-                coords.append((x,y,w,h,size))
-    
-    # cv.namedWindow('img_binary',cv.WINDOW_NORMAL)
-    # cv.resizeWindow('img_binary', 600,600)
-    # cv.imshow("img_binary", labels*255)
-    # cv.waitKey(0)
-    # cv.destroyAllWindows()
-    
-    #Creating the expected number of masks by keeping the biggest bounding boxes
-    coords.sort(key=lambda x:x[4], reverse=True)
-    masks = []
-    tx = []
-    ty = []
-    if option == 'find':
-        length = np.shape(background_mask)[0]
-    if option == 'remove':
-        length = max(len(coords),np.shape(background_mask)[0])
 
-    for i in range(length):
-        if len(coords)>0:
-            (x,y,w,h,size) = coords.pop(0)
-            m = np.zeros((height,width),np.uint8)
-            m[y:y + h, x:x + w] = 255
-            masks.append(np.uint8(m))
-            tx.append((x+w)/2)
-            ty.append((y+h)/2)
-        else:
-            m = np.zeros((height,width),np.uint8)
-            masks.append(np.uint8(m))
-
-        # cv.namedWindow('mask',cv.WINDOW_NORMAL)
-        # cv.resizeWindow('mask', 600,600)
-        # cv.imshow("mask", masks[i])
+                _, contours,_ = cv.findContours(region, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
+                contour_sizes = [(cv.contourArea(contour), contour) for contour in contours]
+                largest_contour = max(contour_sizes, key=lambda x: x[0])[1]
+                (x,y,w,h) = cv.boundingRect(largest_contour)
+                perimeter = cv.arcLength(largest_contour,True)
+                if h/w>max_aspect_ratio or h/w<min_aspect_ratio or len(positions[0])/(w*h)<min_occupancy_ratio or (w*h)/(perimeter*perimeter)<min_compactness_ratio:
+                    labels[positions] = 0
+                else:
+                    coords.append((x,y,w,h,size))
+        
+        # cv.namedWindow('img_binary',cv.WINDOW_NORMAL)
+        # cv.resizeWindow('img_binary', 600,600)
+        # cv.imshow("img_binary", labels*255)
         # cv.waitKey(0)
         # cv.destroyAllWindows()
+        
+        #Creating the expected number of masks by keeping the biggest bounding boxes
+        coords.sort(key=lambda x:x[4], reverse=True)
+        tx = []
+        ty = []
+        mask=[]
+        if option == 'find':
+            length = 1
+        if option == 'remove':
+            length = max(len(coords),1)
 
+        m = np.zeros((height,width),np.uint8)
+        for i in range(length):
+            if len(coords)>0:
+                (x,y,w,h,size) = coords.pop(0)   
+                m[y:y + h, x:x + w] = 255
+                tx.append((x+w)/2)
+                ty.append((y+h)/2)
+
+            cv.namedWindow('mask',cv.WINDOW_NORMAL)
+            cv.resizeWindow('mask', 600,600)
+            cv.imshow("mask", m)
+            cv.waitKey(0)
+            cv.destroyAllWindows()
+        masks.append(m)
 
     if option == 'remove':
         total_mask=np.zeros((height,width),np.uint8)
@@ -133,29 +141,26 @@ def find_text(img, background_mask, name, option):
             total_masks.append(total_mask)
 
         return total_masks
-    
 
-    
-    #Matching text mask to background mask (only if the image contains 2 or more paintings)
-    if np.shape(background_mask)[0]>1:
-        cx = np.zeros(2)
-        cy = np.zeros(2)
-        for i in range(np.shape(background_mask)[0]):
-            moments = cv.moments(background_mask[i])
-            cx[i]=int(moments["m10"]/moments["m00"])
-            cy[i]=int(moments["m01"]/moments["m00"])
-        if np.sum(masks[0])!=0 and np.sum(masks[1])!=0:
-            if math.sqrt(((cx[0]-tx[0])**2)+((cy[0]-ty[0])**2)) + math.sqrt(((cx[1]-tx[1])**2)+((cy[1]-ty[1])**2)) > math.sqrt(((cx[0]-tx[1])**2)+((cy[0]-ty[1])**2)) + math.sqrt(((cx[1]-tx[0])**2)+((cy[1]-ty[0])**2)):
-                aux = masks[0]
-                masks[0] = masks[1]
-                masks[1] = aux
-        else:
-            if math.sqrt(((cx[0]-tx[0])**2)+((cy[0]-ty[0])**2)) > math.sqrt(((cx[1]-tx[0])**2)+((cy[1]-ty[0])**2)):
-                aux = masks[0]
-                masks[0] = masks[1]
-                masks[1] = aux
-
-
+        
+        # #Matching text mask to background mask (only if the image contains 2 or more paintings)
+        # if np.shape(background_mask)[0]>1:
+        #     cx = np.zeros(2)
+        #     cy = np.zeros(2)
+        #     for i in range(np.shape(background_mask)[0]):
+        #         moments = cv.moments(background_mask[i])
+        #         cx[i]=int(moments["m10"]/moments["m00"])
+        #         cy[i]=int(moments["m01"]/moments["m00"])
+        #     if np.sum(masks[0])!=0 and np.sum(masks[1])!=0:
+        #         if math.sqrt(((cx[0]-tx[0])**2)+((cy[0]-ty[0])**2)) + math.sqrt(((cx[1]-tx[1])**2)+((cy[1]-ty[1])**2)) > math.sqrt(((cx[0]-tx[1])**2)+((cy[0]-ty[1])**2)) + math.sqrt(((cx[1]-tx[0])**2)+((cy[1]-ty[0])**2)):
+        #             aux = masks[0]
+        #             masks[0] = masks[1]
+        #             masks[1] = aux
+        #     else:
+        #         if math.sqrt(((cx[0]-tx[0])**2)+((cy[0]-ty[0])**2)) > math.sqrt(((cx[1]-tx[0])**2)+((cy[1]-ty[0])**2)):
+        #             aux = masks[0]
+        #             masks[0] = masks[1]
+        #             masks[1] = aux
     return masks
 
 # for f in sorted(glob.glob(qs_l)):
