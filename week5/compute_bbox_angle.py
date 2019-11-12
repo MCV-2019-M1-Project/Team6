@@ -24,7 +24,7 @@ Open masks from left to right. Save them first so they can be converted to grays
 Once you open the mask you can detect it with no problems.
 """
 # Try with the mask
-im = cv.imread('../qs/qsd1_w5/00008.png', cv.IMREAD_COLOR)
+im = cv.imread('../qs/qsd1_w5/00001.png', cv.IMREAD_COLOR)
 im = cv.medianBlur(im, 3)
 im_gray = cv.cvtColor(im,cv.COLOR_BGR2GRAY)
 edges = cv.Canny(im, 50, 400, apertureSize=3)
