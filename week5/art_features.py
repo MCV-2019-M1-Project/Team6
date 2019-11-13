@@ -1,10 +1,14 @@
 import cv2 as cv
 import numpy as np
 import math
+import colorgram
+import tamura
 
-def color_features(img):
+def art_features(img, image_name):
 
+    img = cv.resize(img, (512,512))
     img_hsv = cv.cvtColor(img, cv.COLOR_BGR2HSV)
+    img_gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     height = img.shape[0]
     width = img.shape[1]
     npx = height*width
@@ -55,8 +59,23 @@ def color_features(img):
     
     colorfulness = cv.EMD(uniform_signature, img_signature, cv.DIST_L2)[0]
 
-    print(colorfulness)
-    #saturation + brightness + pleasure + arousal + dominance + mean_hue + hue_variance + mean_hue_saturation + hue_variance_saturation + colorfulness
+    #Main colours
+    main_colors = []
+    colors = colorgram.extract(image_name, 3)
+    for i in range(0,3):
+        for j in range(0,3):
+            main_colors.append(colors[i].hsl[j])    
+        main_colors.append(colors[i].proportion)
 
-img = cv.imread('../database/bbdd_00002.jpg', cv.IMREAD_COLOR)
-color_features(img)
+    #Tamura texture features: coarseness, contrast and directionality
+    coarseness = tamura.coarseness(img_gray, 3)
+    contrast = tamura.contrast(img_gray)
+    directionality = tamura.directionality(img_gray)
+
+    
+    #Colour features: saturation + brightness + pleasure + arousal + dominance + mean_hue + hue_variance + mean_hue_saturation + hue_variance_saturation + colorfulness + main_colors
+    #Texture features: coarseness + contrast + directionality
+
+image_name = '../database/bbdd_00241.jpg'
+img = cv.imread(image_name, cv.IMREAD_COLOR)
+art_features(img, image_name)
