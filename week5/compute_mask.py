@@ -127,13 +127,14 @@ def compute_mask(img, name, qs):
     # Second method: detect contours
     _, contours, hier = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
     
-    #If two paintings, return 2 masks
+    # If two paintings, return 2 masks
     if(np.shape(hier)[1] == 2):
         mask_1 = np.zeros_like(mask)
         mask_0 = np.zeros_like(mask)
         cv.fillPoly(mask_1, pts =[contours[0]], color=(255,255,255))
         cv.fillPoly(mask_0, pts =[contours[1]], color=(255,255,255))
 
+        # Left and right mask in the correct order
         indices_0 = np.where(mask_0 != [0])
         indices_1 = np.where(mask_1 != [0])
 
