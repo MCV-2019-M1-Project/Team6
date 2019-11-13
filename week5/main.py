@@ -30,6 +30,7 @@ from compute_SIFT import compute_SIFT
 from compute_SURF import compute_SURF
 from search_matches import search_matches_FLANN
 from search_matches import search_matches_BF
+from find_bboxes import compute_bbox_angle
 
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
@@ -50,10 +51,12 @@ BG_REMOVAL = cfg['bgrm']    # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset']  # Input query set
 K = 1                      # find K closest images
 SIZE = 256
-SEARCH_METHOD = 2           # 1 for normal descriptors (distance) and 2 for keypoints matches (FLANN)
+SEARCH_METHOD = 1           # 1 for normal descriptors (distance) and 2 for keypoints matches (FLANN)
 TEXT_DESCRIPTOR = False
 
 def main():
+    
+    bbox_angles_final_list = []
 
     # Read the image database
     database = []
@@ -70,14 +73,14 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        #descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
+        descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
         #descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
         #descriptor_3 = compute_hog(img, None, 2)
         #descriptor_4 = compute_dct(img_gray, 8, 64, 128)
-        descriptor_5 = compute_SIFT(img_gray, None, SIZE)
+        #descriptor_5 = compute_SIFT(img_gray, None, SIZE)
         #descriptor_6 = compute_SURF(img_gray, None, SIZE)
 
-        descriptor = descriptor_5
+        descriptor = descriptor_1
 
         # Store the descriptor
         database.append(descriptor)
@@ -135,13 +138,20 @@ def main():
 
         # BACKGROUND REMOVAL
         elif QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qst2_w3' or QUERY_SET == 'qsd1_w4' or QUERY_SET == 'qst1_w4' or QUERY_SET == 'qsd1_w5' or QUERY_SET == 'qst1_w5':
-            bg_mask, eval_metrics = compute_mask(img,name,QUERY_SET)
+            bg_mask, eval_metrics, contours = compute_mask(img,name,QUERY_SET)
+
+             # PAINTING COORDINATES AND ROTATION ANGLE DETECTION
+            bbox_angles_list = compute_bbox_angle(contours, im)
+            bbox_angles_final_list.append(bbox_angles_list)
+            print("Coordinates and rotation angle for query image: " + name)
+            print(bbox_angles_list)
 
             if eval_metrics is not None:
                 precision[i] = eval_metrics[0]
                 recall[i] = eval_metrics[3]
                 fscore[i] = eval_metrics[4]
         
+       
 
         # TEXT REMOVAL
         # Use the mask created (image without background) to indicate search text
@@ -199,14 +209,14 @@ def main():
             """
 
             # Extract the features
-            #descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
             #descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
             #descriptor_3 = compute_hog(img, prod, 2)
             #descriptor_4 = compute_dct(img_gray, 8, 64, 128)
-            descriptor_5 = compute_SIFT(img_gray, prod, SIZE)
+            #descriptor_5 = compute_SIFT(img_gray, prod, SIZE)
             #descriptor_6 = compute_SURF(img_gray, prod, SIZE)
 
-            descriptor = descriptor_5
+            descriptor = descriptor_1
             
             # Reduce database if text descriptor is used
             if len(prob_paintings[m]) > 0 and TEXT_DESCRIPTOR == True:
@@ -323,6 +333,7 @@ def main():
 
     ## WRITE OUTPUT FILES ##
     pickle.dump(final_ranking, open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
+    pickle.dump(bbox_angles_final_list, open('../qs' + QUERY_SET + 'actual_frames.pkl','wb'))
 
 if __name__== "__main__":
     main()
