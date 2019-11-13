@@ -3,12 +3,14 @@ import cv2 as cv
 import numpy as np
 import pickle
 
+from compute_mask import compute_mask
+
 """
 This function computes the painting bounding box and its rotation.
 Input parameters: background removal mask
 """
 
-def compute_bbox_angle(mask):
+def compute_bbox_angle(contours, image):
 
     cor_1 = []
     cor_2 = []
@@ -19,17 +21,12 @@ def compute_bbox_angle(mask):
     bbox_angles = []
     final_list = []
 
-    im_gray = cv.cvtColor(mask,cv.COLOR_BGR2GRAY)
-
     """
     cv.namedWindow("mask", cv.WINDOW_NORMAL)
     cv.imshow("mask", im_gray)
     cv.waitKey(0)
     cv.destroyAllWindows()
     """
-
-    # Find contours in mask
-    _, contours, hier = cv.findContours(im_gray, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
 
     # Loop over contours and find bounding boxes and their rotations
     for contour in contours:
@@ -65,11 +62,13 @@ def compute_bbox_angle(mask):
         #print("Rotation angle of detected bbox: " + str(alpha))
 
         # Draw and show detected contours
-        cv.drawContours(mask, [bbox] , -1, (0,255,0), 3)
+        """
+        cv.drawContours(image, [bbox] , -1, (0,255,0), 3)
         cv.namedWindow("contours", cv.WINDOW_NORMAL)
-        cv.imshow("contours", mask)
+        cv.imshow("contours", image)
         cv.waitKey(0)
         cv.destroyAllWindows()
+        """
 
         cor_1 = []
         cor_2 = []
@@ -80,6 +79,16 @@ def compute_bbox_angle(mask):
     
     return final_list
 
+
+"""
+im = cv.imread('../qs/qsd1_w5/00005.jpg', cv.IMREAD_COLOR)
+img = im
+im = cv.cvtColor(im, cv.COLOR_BGR2HSV)
+_,_, contours = compute_mask(im, "hola", 'qsd1_w5')
+final_list = compute_bbox_angle(contours, im)
+print(final_list)
+"""
+"""
 ####### EXECUTION EXAMPLE ##################
 
 # Frames ground truth
@@ -94,3 +103,4 @@ im = cv.imread('../week5/masks/00002.png', cv.IMREAD_COLOR)
 #im = cv.imread('../qs/qsd1_w5/00029.png', cv.IMREAD_COLOR)
 final_list = compute_bbox_angle(im)
 print(final_list)
+"""

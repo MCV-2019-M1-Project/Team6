@@ -55,11 +55,13 @@ def find_text(img, background_mask, name, option):
         img_eroded = cv.erode(img_dilated,kernel,iterations = 2)
         img_opening = cv.morphologyEx(img_eroded, cv.MORPH_OPEN, np.ones((15,15), np.uint8))
 
+        """
         cv.namedWindow('img_opening',cv.WINDOW_NORMAL)
         cv.resizeWindow('img_opening', 600,600)
         cv.imshow("img_opening", img_opening)
         cv.waitKey(0)
         cv.destroyAllWindows()
+        """
 
         num, labels = cv.connectedComponents(img_opening)
         sorted_labels = labels.ravel()
@@ -125,11 +127,13 @@ def find_text(img, background_mask, name, option):
                 tx.append((x+w)/2)
                 ty.append((y+h)/2)
 
+            """
             cv.namedWindow('mask',cv.WINDOW_NORMAL)
             cv.resizeWindow('mask', 600,600)
             cv.imshow("mask", m)
             cv.waitKey(0)
             cv.destroyAllWindows()
+            """
         masks.append(m)
 
     if option == 'remove':
