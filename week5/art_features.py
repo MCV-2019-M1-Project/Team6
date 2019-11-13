@@ -72,6 +72,10 @@ def art_features(img, image_name):
     contrast = tamura.contrast(img_gray)
     directionality = tamura.directionality(img_gray)
 
+<<<<<<< HEAD
+=======
+    
+>>>>>>> master
     #Colour features: saturation + brightness + pleasure + arousal + dominance + mean_hue + hue_variance + mean_hue_saturation + hue_variance_saturation + colorfulness + main_colors
     #Texture features: coarseness + contrast + directionality
 
