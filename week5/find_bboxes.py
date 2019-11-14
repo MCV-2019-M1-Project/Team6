@@ -2,6 +2,8 @@
 import cv2 as cv
 import numpy as np
 import pickle
+import glob
+import os
 
 from compute_mask import compute_mask
 
@@ -69,7 +71,6 @@ def compute_bbox_angle(contours, image):
         cv.waitKey(0)
         cv.destroyAllWindows()
         """
-
         cor_1 = []
         cor_2 = []
         cor_3 = []
@@ -77,30 +78,26 @@ def compute_bbox_angle(contours, image):
         corners = []
         bbox_angles = []
     
+    # Sort from left to right, top to bottom
+    final_list.sort(key=lambda x:x[1][0][0])
     return final_list
 
-
 """
-im = cv.imread('../qs/qsd1_w5/00005.jpg', cv.IMREAD_COLOR)
+####### EXECUTION EXAMPLE ##################
+QUERY_SET = 'qsd1_w5'
+qs_l = '../qs/' + QUERY_SET + '/*.jpg'
+
+frames = pickle.load(open('../qs/frames.pkl','rb'))
+print(frames[17])
+
+#for f in sorted(glob.glob(qs_l)):
+#name = os.path.splitext(os.path.split(f)[1])[0]
+im = cv.imread('../qs/qsd1_w5/00017.jpg', cv.IMREAD_COLOR)
+#im = cv.imread('../week5/masks/' + name + '.png', cv.IMREAD_COLOR)
 img = im
 im = cv.cvtColor(im, cv.COLOR_BGR2HSV)
 _,_, contours = compute_mask(im, "hola", 'qsd1_w5')
-final_list = compute_bbox_angle(contours, im)
+final_list = compute_bbox_angle(contours, img)
 print(final_list)
 """
-"""
-####### EXECUTION EXAMPLE ##################
 
-# Frames ground truth
-print("GROUND TRUTH")
-frames = pickle.load(open('../qs/frames.pkl','rb'))
-print(frames[2])
-
-print("ACTUAL RESULTS")
-# Read background removal mask
-im = cv.imread('../week5/masks/00002.png', cv.IMREAD_COLOR)
-# Ground truth (for testing the algorithm)
-#im = cv.imread('../qs/qsd1_w5/00029.png', cv.IMREAD_COLOR)
-final_list = compute_bbox_angle(im)
-print(final_list)
-"""

@@ -305,7 +305,7 @@ def main():
                     pred.append([p[0], p[1]])
 
             print(pred)
-
+            """
             gt = (np.hstack(gt))
             pred = (np.hstack(pred))
 
@@ -329,11 +329,12 @@ def main():
                 F1 = 2*pixel_precision*pixel_sensitivity/(pixel_precision+pixel_sensitivity)
             print('F1 score:')
             print(F1)
+            """
 
 
     ## WRITE OUTPUT FILES ##
     pickle.dump(final_ranking, open('../qs/' + QUERY_SET + '/actual_corresps.pkl','wb'))
-    pickle.dump(bbox_angles_final_list, open('../qs' + QUERY_SET + 'actual_frames.pkl','wb'))
+    pickle.dump(bbox_angles_final_list, open('../qs/' + QUERY_SET + '/actual_frames.pkl','wb'))
 
 if __name__== "__main__":
     main()
