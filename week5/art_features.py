@@ -115,29 +115,30 @@ def art_features(img, image_name):
     vert = 0
     horz = 0
     tilt = 0
-    for line in lines:
-        for rho, theta in line:
-            if np.sin(theta) > -0.1 and np.sin(theta) < 0.1:
-                vert += 1
-            elif np.sin(theta-np.pi/2.0) > -0.1 and np.sin(theta-np.pi/2.0) < 0.1:
-                horz +=1
-            else:
-                tilt +=1
-    num_lines = len(lines)
-    vert /= num_lines
-    horz /= num_lines
-    tilt /= num_lines
+    if np.any(lines != None):
+        for line in lines:
+            for rho, theta in line:
+                if np.sin(theta) > -0.1 and np.sin(theta) < 0.1:
+                    vert += 1
+                elif np.sin(theta-np.pi/2.0) > -0.1 and np.sin(theta-np.pi/2.0) < 0.1:
+                    horz +=1
+                else:
+                    tilt +=1
+        num_lines = len(lines)
+        vert /= num_lines
+        horz /= num_lines
+        tilt /= num_lines
+    else:
+        num_lines = 0
 
   
     dynamics = [num_lines, vert, horz, tilt]
-    
-    print(colorfulness)
 
 
     #Colour features: saturation + brightness + pleasure + arousal + dominance + mean_hue + hue_variance + mean_hue_saturation + hue_variance_saturation + colorfulness + main_colors
     #Texture features: coarseness + contrast + directionality
     #Composition features: lod
 
-image_name = '../database/bbdd_00101.jpg'
+image_name = '../database/bbdd_00100.jpg'
 img = cv.imread(image_name, cv.IMREAD_COLOR)
 art_features(img, image_name)
