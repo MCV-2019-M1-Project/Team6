@@ -147,4 +147,4 @@ def compute_mask(img, name, qs):
     else:
         bg_mask = [mask]
 
-    return bg_mask, eval_metrics
+    return bg_mask, eval_metrics, contours
