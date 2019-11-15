@@ -33,7 +33,7 @@ def check_rotation(image):
     # Variables to shaw found biggest contour
     bbox = cv.boxPoints(rect)
     bbox = np.int0(bbox)
-    cv.drawContours(im, [bbox] , -1, (0,255,0), 3)
+    #cv.drawContours(im, [bbox] , -1, (0,255,0), 3)
 
     # Compute rotation angle of painting's
     alpha = rect[2]
@@ -60,7 +60,7 @@ def rotate_image(im, alpha):
 
     return rotated
 
-def compute_coordinates(img_gray):
+def compute_coordinates(img_gray,alpha):
     rotated_gray = imutils.rotate_bound(img_gray, alpha)
     rotated_2_gray = imutils.rotate(rotated_gray, alpha)
 
@@ -71,7 +71,7 @@ def compute_coordinates(img_gray):
 
     return x,y,w,h
 
-
+"""
 ############ EXECUTION EXAMPLE #########################
 im = cv.imread('../qs/qsd1_w5/00001.jpg', cv.IMREAD_COLOR)
 im = cv.medianBlur(im, 3)
@@ -87,6 +87,7 @@ cv.destroyAllWindows()
 x,y,w,h = compute_coordinates(img_gray)
 
 _,_, contours = compute_mask(rotated, im, "hola", 'qsd1_w5', alpha, x,y,w,h)
+"""
 
 
 """

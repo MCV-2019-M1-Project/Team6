@@ -147,7 +147,7 @@ def main():
             # Rotate image
             rotated = rotate_image(im, alpha)
             # Find original coordinates to crop rotated mask
-            x,y,w,h = compute_coordinates(img_gray)
+            x,y,w,h = compute_coordinates(img_gray, alpha)
             # Compute mask
             bg_mask, eval_metrics, contours = compute_mask(rotated, im, name, QUERY_SET, alpha, x, y, w, h)
  
@@ -204,6 +204,8 @@ def main():
         picture_rank = []
         for m in range(length):
             # Use either one or the other mask
+            #prod = bg_mask[m]
+            #prod = prod.astype(np.uint8)
             prod = cv.bitwise_not(mask[m]) * bg_mask[m]
             prod = prod.astype(np.uint8)
 
