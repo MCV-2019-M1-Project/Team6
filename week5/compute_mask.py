@@ -11,11 +11,13 @@ from matplotlib import pyplot as plt
 from evaluation_funcs import performance_accumulation_pixel
 from evaluation_funcs import performance_evaluation_pixel
 from bbox_iou import bbox_iou
+import imutils
 
 
-def compute_mask(img, name, qs):
+def compute_mask(img, im_or, name, qs, alpha, x, y, w, h):
     qs_l = '../qs/' + qs + '/*.jpg'
-
+    # Compute height and width of original image
+    or_height, or_width = im_or.shape[:2]
     # Apply another median filter
     img_median = cv.medianBlur(img,9)
 
@@ -61,11 +63,16 @@ def compute_mask(img, name, qs):
     else:
         mask = mask1 + mask2
     
+    # Rotate mask back to its original position and crop
+    rotated_mask = imutils.rotate(mask, alpha)
+    mask = rotated_mask[y:y+h,x:x+w]
+    mask = cv.resize(mask, (or_width, or_height))
+
     # Save mask
     cv.imwrite('masks/' + name + '.png', mask)
 
     # Compute evaluation metrics only if development set
-    if (qs == 'qsd2_w1' or qs == 'qsd2_w2' or qs == 'qsd2_w3' or qs == 'qsd3_w3' or qs == 'qsd1_w4' or qs == 'qsd1_w5'):
+    if (qs == 'qsd2_w1' or qs == 'qsd2_w2' or qs == 'qsd2_w3' or qs == 'qsd3_w3' or qs == 'qsd1_w4'):
         # Read ground truth
         g_t = cv.imread('../qs/' + qs + '/' + name + '.png', cv.IMREAD_COLOR)
         g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
