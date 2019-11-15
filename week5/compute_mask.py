@@ -133,49 +133,51 @@ def compute_mask(img, im_or, name, qs, alpha, x, y, w, h):
 
     # Second method: detect contours
     _, contours, hier = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-    
     # If two paintings, return 2 masks
-    if(np.shape(hier)[1] == 2):
-        mask_1 = np.zeros_like(mask)
-        mask_0 = np.zeros_like(mask)
-        cv.fillPoly(mask_1, pts =[contours[0]], color=(255,255,255))
-        cv.fillPoly(mask_0, pts =[contours[1]], color=(255,255,255))
+    if hier is not None:
+        if(np.shape(hier)[1] == 2):
+            mask_1 = np.zeros_like(mask)
+            mask_0 = np.zeros_like(mask)
+            cv.fillPoly(mask_1, pts =[contours[0]], color=(255,255,255))
+            cv.fillPoly(mask_0, pts =[contours[1]], color=(255,255,255))
 
-        # Left and right mask in the correct order
-        indices_0 = np.where(mask_0 != [0])
-        indices_1 = np.where(mask_1 != [0])
+            # Left and right mask in the correct order
+            indices_0 = np.where(mask_0 != [0])
+            indices_1 = np.where(mask_1 != [0])
 
-        if(indices_0[0].size != 0 and indices_0[1].size !=0 and indices_1[0].size != 0 and indices_1[1].size !=0 ):
-            if( min(indices_0[1]) < min(indices_1[1]) ):
-                bg_mask = [mask_0, mask_1]
-            else:
-                bg_mask = [mask_1, mask_0]
-        
-    # If three paintings, return 3 masks
-    elif(np.shape(hier)[1] == 3):
-        mask_0 = np.zeros_like(mask)
-        mask_1 = np.zeros_like(mask)
-        mask_2 = np.zeros_like(mask)
-        
-        cv.fillPoly(mask_0, pts =[contours[0]], color=(255,255,255))
-        cv.fillPoly(mask_1, pts =[contours[1]], color=(255,255,255))
-        cv.fillPoly(mask_2, pts =[contours[2]], color=(255,255,255))
-
-        masks = [mask_0, mask_1, mask_2]
-        
-        # Left and right mask in the correct order
-        indices_0 = np.where(mask_0 != [0])
-        indices_1 = np.where(mask_1 != [0])
-        indices_2 = np.where(mask_2 != [0])
-
-        if(indices_0[0].size != 0 and indices_0[1].size !=0 and indices_1[0].size != 0 and indices_1[1].size !=0 and indices_2[0].size != 0 and indices_2[1].size !=0 ):
-            # Check which painting is on the left (lower Y index)
-            minimum = [min(indices_0[1]), min(indices_1[1]), min(indices_2[1])]
-            indices = np.argsort(minimum)
+            if(indices_0[0].size != 0 and indices_0[1].size !=0 and indices_1[0].size != 0 and indices_1[1].size !=0 ):
+                if( min(indices_0[1]) < min(indices_1[1]) ):
+                    bg_mask = [mask_0, mask_1]
+                else:
+                    bg_mask = [mask_1, mask_0]
             
-            # Return masks in order
-            bg_mask = [masks[indices[0]], masks[indices[1]], masks[indices[2]]]
-       
+        # If three paintings, return 3 masks
+        elif(np.shape(hier)[1] == 3):
+            mask_0 = np.zeros_like(mask)
+            mask_1 = np.zeros_like(mask)
+            mask_2 = np.zeros_like(mask)
+            
+            cv.fillPoly(mask_0, pts =[contours[0]], color=(255,255,255))
+            cv.fillPoly(mask_1, pts =[contours[1]], color=(255,255,255))
+            cv.fillPoly(mask_2, pts =[contours[2]], color=(255,255,255))
+
+            masks = [mask_0, mask_1, mask_2]
+            
+            # Left and right mask in the correct order
+            indices_0 = np.where(mask_0 != [0])
+            indices_1 = np.where(mask_1 != [0])
+            indices_2 = np.where(mask_2 != [0])
+
+            if(indices_0[0].size != 0 and indices_0[1].size !=0 and indices_1[0].size != 0 and indices_1[1].size !=0 and indices_2[0].size != 0 and indices_2[1].size !=0 ):
+                # Check which painting is on the left (lower Y index)
+                minimum = [min(indices_0[1]), min(indices_1[1]), min(indices_2[1])]
+                indices = np.argsort(minimum)
+                
+                # Return masks in order
+                bg_mask = [masks[indices[0]], masks[indices[1]], masks[indices[2]]]
+        
+        else:
+            bg_mask = [mask]
     else:
         bg_mask = [mask]
 
