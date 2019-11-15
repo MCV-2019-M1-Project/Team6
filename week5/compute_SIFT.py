@@ -30,7 +30,11 @@ def compute_SIFT(img, mask, size):
 
         img = cv.resize(img, (size,size))
         img = img[25:(size-25), 25:(size-25)]
-
+        """
+        cv.imshow('img',img)
+        cv.waitKey()
+        cv.destroyAllWindows()
+        """
     else:
         # Resize to speed up execution
         img = cv.resize(img, (size,size))
