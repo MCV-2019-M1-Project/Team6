@@ -65,7 +65,7 @@ def compute_mask(img, name, qs):
     cv.imwrite('masks/' + name + '.png', mask)
 
     # Compute evaluation metrics only if development set
-    if (qs == 'qsd2_w1' or qs == 'qsd2_w2' or qs == 'qsd2_w3' or qs == 'qsd3_w3'):
+    if (qs == 'qsd2_w1' or qs == 'qsd2_w2' or qs == 'qsd2_w3' or qs == 'qsd3_w3' or qs == 'qsd1_w4' or qs == 'qsd1_w5'):
         # Read ground truth
         g_t = cv.imread('../qs/' + qs + '/' + name + '.png', cv.IMREAD_COLOR)
         g_t = cv.cvtColor(g_t, cv.COLOR_BGR2GRAY)
@@ -144,7 +144,32 @@ def compute_mask(img, name, qs):
             else:
                 bg_mask = [mask_1, mask_0]
         
+    # If three paintings, return 3 masks
+    elif(np.shape(hier)[1] == 3):
+        mask_0 = np.zeros_like(mask)
+        mask_1 = np.zeros_like(mask)
+        mask_2 = np.zeros_like(mask)
+        
+        cv.fillPoly(mask_0, pts =[contours[0]], color=(255,255,255))
+        cv.fillPoly(mask_1, pts =[contours[1]], color=(255,255,255))
+        cv.fillPoly(mask_2, pts =[contours[2]], color=(255,255,255))
+
+        masks = [mask_0, mask_1, mask_2]
+        
+        # Left and right mask in the correct order
+        indices_0 = np.where(mask_0 != [0])
+        indices_1 = np.where(mask_1 != [0])
+        indices_2 = np.where(mask_2 != [0])
+
+        if(indices_0[0].size != 0 and indices_0[1].size !=0 and indices_1[0].size != 0 and indices_1[1].size !=0 and indices_2[0].size != 0 and indices_2[1].size !=0 ):
+            # Check which painting is on the left (lower Y index)
+            minimum = [min(indices_0[1]), min(indices_1[1]), min(indices_2[1])]
+            indices = np.argsort(minimum)
+            
+            # Return masks in order
+            bg_mask = [masks[indices[0]], masks[indices[1]], masks[indices[2]]]
+       
     else:
         bg_mask = [mask]
 
-    return bg_mask, eval_metrics
+    return bg_mask, eval_metrics, contours
