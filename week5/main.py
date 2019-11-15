@@ -17,7 +17,7 @@ from bbox_iou import bbox_iou
 
 ## CUSTOM LIBS ## 
 from extract_features import extract_features
-from compute_mask import compute_mask
+from compute_mask_3 import compute_mask
 from compute_mask_old import compute_mask_old
 from text_removal_mask import text_removal_mask
 from text_removal_mask2 import find_text
@@ -144,16 +144,18 @@ def main():
             
             # Find rotation angle of image
             alpha = check_rotation(img_gray)
+            '''
             # Rotate image
             rotated = rotate_image(im, alpha)
             # Find original coordinates to crop rotated mask
             x,y,w,h = compute_coordinates(img_gray, alpha)
             # Compute mask
             bg_mask, eval_metrics, contours = compute_mask(rotated, im, name, QUERY_SET, alpha, x, y, w, h)
+            '''
+            
+            bg_mask, eval_metrics, contours = compute_mask(img, name, QUERY_SET, alpha)
 
-            # Fins aqui funciona ok
-
-            # PAINTING COORDINATES AND ROTATION ANGLE DETECTION
+             # PAINTING COORDINATES AND ROTATION ANGLE DETECTION
             bbox_angles_list = compute_bbox_angle(contours, im)
             bbox_angles_final_list.append(bbox_angles_list)
             print("Coordinates and rotation angle for query image: " + name)
@@ -169,7 +171,6 @@ def main():
         # TEXT REMOVAL
         # Use the mask created (image without background) to indicate search text
         #mask, pred_coords = text_removal_mask(img_gray, name, kernel, post_kernel, num_cols, coords, bg_mask, QUERY_SET)
-        
         if bg_mask is not None:
             mask = find_text(img_gray, bg_mask, name, 'remove')
             mask_find = find_text(img_gray, bg_mask, name, 'find')
@@ -177,11 +178,12 @@ def main():
             bg_mask = [np.ones((img_gray.shape[0],img_gray.shape[1]))]
             mask = find_text(img_gray, bg_mask, name, 'remove')
             mask_find = find_text(img_gray, bg_mask, name, 'find')
-        
+
         #mask = bg_mask # No text removal mask
 
         #TEXT DETECTION
         prob_paintings, found_text = get_text(img_gray, mask_find, database_txt)
+
         #print('Prob paintings:')
         #print(prob_paintings)
         #qst_txt.append( final_authors )
@@ -214,8 +216,7 @@ def main():
             prod = prod.astype(np.uint8)
 
             _, prod = cv.threshold(prod,0,255,cv.THRESH_BINARY)
-            
-            cv.imwrite('masks/' + name + '_' + str(m) + '_text.png', cv.bitwise_not(mask[m]))
+            cv.imwrite('masks/' + name + '_' + str(m) + '_text.png', text)
             cv.imwrite('masks/' + name + '_' + str(m) + '_bg.png', bg_mask[m])
             cv.imwrite('masks/' + name + '_' + str(m) + '_merged.png', prod)
             
