@@ -18,7 +18,7 @@ def art_features(img, image_name):
     npx = height*width
     
     #Mean saturation and brightness
-    saturation = np.sum(img_hsv[:][:][2])/npx
+    saturation = np.sum(img_hsv[:][:][1])/npx
     brightness = np.sum(img_hsv[:][:][2])/npx
 
     #Pleasure, arousal and dominance
@@ -34,9 +34,9 @@ def art_features(img, image_name):
     for x in range(height):
         for y in range(width):
             a += math.cos(img_hsv[x][y][1])
-            a_s += img_hsv[x][y][2]* math.cos(img_hsv[x][y][1])
+            a_s += img_hsv[x][y][1]* math.cos(img_hsv[x][y][0])
             b += math.sin(img_hsv[x][y][1])
-            b_s += img_hsv[x][y][2] * math.sin(img_hsv[x][y][1])
+            b_s += img_hsv[x][y][1] * math.sin(img_hsv[x][y][0])
     
     mean_hue = math.atan2(b,a)
     hue_variance = 1 - math.sqrt(a*a+b*b)/npx
@@ -78,9 +78,9 @@ def art_features(img, image_name):
 
     #Wavelet texture descriptors
     wavelets = []
-    coeffs_h= pywt.wavedec2(img_hsv[:][:][1], 'db1', level=3)
-    coeffs_s= pywt.wavedec2(img_hsv[:][:][2], 'db1', level=3)
-    coeffs_v= pywt.wavedec2(img_hsv[:][:][3], 'db1', level=3)
+    coeffs_h= pywt.wavedec2(img_hsv[:][:][0], 'db1', level=3)
+    coeffs_s= pywt.wavedec2(img_hsv[:][:][1], 'db1', level=3)
+    coeffs_v= pywt.wavedec2(img_hsv[:][:][2], 'db1', level=3)
     for i in range(1,4):
         sum_h = 0
         sum_s = 0
@@ -137,7 +137,7 @@ def art_features(img, image_name):
 
     #Colour features: saturation + brightness + pleasure + arousal + dominance + mean_hue + hue_variance + mean_hue_saturation + hue_variance_saturation + colorfulness + main_colors
     #Texture features: coarseness + contrast + directionality
-    #Composition features: lod
+    #Composition features: lod dynamics
 
 image_name = '../database/bbdd_00100.jpg'
 img = cv.imread(image_name, cv.IMREAD_COLOR)
