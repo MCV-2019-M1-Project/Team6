@@ -71,8 +71,9 @@ def compute_coordinates(img_gray):
 
     return x,y,w,h
 
+
 ############ EXECUTION EXAMPLE #########################
-im = cv.imread('../qs/qsd1_w5/00008.jpg', cv.IMREAD_COLOR)
+im = cv.imread('../qs/qsd1_w5/00001.jpg', cv.IMREAD_COLOR)
 im = cv.medianBlur(im, 3)
 img_gray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 im = cv.cvtColor(im, cv.COLOR_BGR2HSV)
@@ -86,6 +87,7 @@ cv.destroyAllWindows()
 x,y,w,h = compute_coordinates(img_gray)
 
 _,_, contours = compute_mask(rotated, im, "hola", 'qsd1_w5', alpha, x,y,w,h)
+
 
 """
 for f in sorted(glob.glob(qs_l)):
