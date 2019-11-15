@@ -44,7 +44,7 @@ def search_matches_FLANN(queries, database, K):
     print(matches_final)
 
     th1 = 14 #46 8 3
-    th2 = 8  #10 #60
+    th2 = 10  #10 #60
     passed = False
     zero_passed = False
     for i in topK_matches_prov:

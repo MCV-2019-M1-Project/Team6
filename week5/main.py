@@ -214,6 +214,7 @@ def main():
             prod = prod.astype(np.uint8)
 
             _, prod = cv.threshold(prod,0,255,cv.THRESH_BINARY)
+            
             cv.imwrite('masks/' + name + '_' + str(m) + '_text.png', cv.bitwise_not(mask[m]))
             cv.imwrite('masks/' + name + '_' + str(m) + '_bg.png', bg_mask[m])
             cv.imwrite('masks/' + name + '_' + str(m) + '_merged.png', prod)

@@ -68,6 +68,9 @@ def compute_mask(img, im_or, name, qs, alpha, x, y, w, h):
     mask = rotated_mask[y:y+h,x:x+w]
     mask = cv.resize(mask, (or_width, or_height))
 
+    mask = cv.flip(mask,0)
+    mask = cv.flip(mask,1)
+
     # Save mask
     cv.imwrite('masks/' + name + '.png', mask)
 
