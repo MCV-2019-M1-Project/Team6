@@ -17,7 +17,7 @@ from bbox_iou import bbox_iou
 
 ## CUSTOM LIBS ## 
 from extract_features import extract_features
-from compute_mask import compute_mask
+from compute_mask_3 import compute_mask
 from compute_mask_old import compute_mask_old
 from text_removal_mask import text_removal_mask
 from text_removal_mask2 import find_text
@@ -54,7 +54,7 @@ BG_REMOVAL = cfg['bgrm']    # 1, 2 or 3 bg removal method
 QUERY_SET= cfg['queryset']  # Input query set
 K = 1                      # find K closest images
 SIZE = 256
-SEARCH_METHOD = 1           # 1 for normal descriptors (distance) and 2 for keypoints matches (FLANN)
+SEARCH_METHOD = 2           # 1 for normal descriptors (distance) and 2 for keypoints matches (FLANN)
 TEXT_DESCRIPTOR = False
 
 def main():
@@ -76,14 +76,14 @@ def main():
         img = cv.cvtColor(img, COLORSPACE)
 
         # Compute descriptors
-        descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
+        #descriptor_1 = compute_lbp(img_gray, None, 8, 16, 8, 2, 'uniform')
         #descriptor_2 = extract_features(img, None, NBINS, DIVISIONS)
         #descriptor_3 = compute_hog(img, None, 2)
         #descriptor_4 = compute_dct(img_gray, 8, 64, 128)
-        #descriptor_5 = compute_SIFT(img_gray, None, SIZE)
+        descriptor_5 = compute_SIFT(img_gray, None, SIZE)
         #descriptor_6 = compute_SURF(img_gray, None, SIZE)
 
-        descriptor = descriptor_1
+        descriptor = descriptor_5
 
         # Store the descriptor
         database.append(descriptor)
@@ -144,13 +144,17 @@ def main():
             
             # Find rotation angle of image
             alpha = check_rotation(img_gray)
+            '''
             # Rotate image
             rotated = rotate_image(im, alpha)
             # Find original coordinates to crop rotated mask
             x,y,w,h = compute_coordinates(img_gray, alpha)
             # Compute mask
             bg_mask, eval_metrics, contours = compute_mask(rotated, im, name, QUERY_SET, alpha, x, y, w, h)
- 
+            '''
+            
+            bg_mask, eval_metrics, contours = compute_mask(img, name, QUERY_SET, alpha)
+
              # PAINTING COORDINATES AND ROTATION ANGLE DETECTION
             bbox_angles_list = compute_bbox_angle(contours, im)
             bbox_angles_final_list.append(bbox_angles_list)
@@ -167,7 +171,6 @@ def main():
         # TEXT REMOVAL
         # Use the mask created (image without background) to indicate search text
         #mask, pred_coords = text_removal_mask(img_gray, name, kernel, post_kernel, num_cols, coords, bg_mask, QUERY_SET)
-        
         if bg_mask is not None:
             mask = find_text(img_gray, bg_mask, name, 'remove')
             mask_find = find_text(img_gray, bg_mask, name, 'find')
@@ -175,11 +178,12 @@ def main():
             bg_mask = [np.ones((img_gray.shape[0],img_gray.shape[1]))]
             mask = find_text(img_gray, bg_mask, name, 'remove')
             mask_find = find_text(img_gray, bg_mask, name, 'find')
-        
+
         #mask = bg_mask # No text removal mask
 
         #TEXT DETECTION
         prob_paintings, found_text = get_text(img_gray, mask_find, database_txt)
+
         #print('Prob paintings:')
         #print(prob_paintings)
         #qst_txt.append( final_authors )
@@ -204,13 +208,20 @@ def main():
         picture_rank = []
         for m in range(length):
             # Use either one or the other mask
-            #prod = bg_mask[m]
-            #prod = prod.astype(np.uint8)
-            prod = cv.bitwise_not(mask[m]) * bg_mask[m]
+            text = cv.bitwise_not(mask[m])
+
+            # If a text mask is all zeros: all ones
+            if text.any()==0:
+                print("ALL ZERO")
+                height, width = np.shape(text)
+                text = np.ones((height,width),np.uint8)
+
+            prod = bg_mask[m]
+            #prod = text * bg_mask[m]
             prod = prod.astype(np.uint8)
 
             _, prod = cv.threshold(prod,0,255,cv.THRESH_BINARY)
-            cv.imwrite('masks/' + name + '_' + str(m) + '_text.png', cv.bitwise_not(mask[m]))
+            cv.imwrite('masks/' + name + '_' + str(m) + '_text.png', text)
             cv.imwrite('masks/' + name + '_' + str(m) + '_bg.png', bg_mask[m])
             cv.imwrite('masks/' + name + '_' + str(m) + '_merged.png', prod)
             
@@ -222,14 +233,14 @@ def main():
             """
 
             # Extract the features
-            descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
+            #descriptor_1 = compute_lbp(img_gray, prod, 8, 16, 8, 2, 'uniform')
             #descriptor_2 = extract_features(img, prod, NBINS, DIVISIONS)
             #descriptor_3 = compute_hog(img, prod, 2)
             #descriptor_4 = compute_dct(img_gray, 8, 64, 128)
-            #descriptor_5 = compute_SIFT(img_gray, prod, SIZE)
+            descriptor_5 = compute_SIFT(img_gray, prod, SIZE)
             #descriptor_6 = compute_SURF(img_gray, prod, SIZE)
 
-            descriptor = descriptor_1
+            descriptor = descriptor_5
             
             # Reduce database if text descriptor is used
             if len(prob_paintings[m]) > 0 and TEXT_DESCRIPTOR == True:
