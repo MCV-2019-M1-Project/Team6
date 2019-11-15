@@ -31,6 +31,9 @@ from compute_SURF import compute_SURF
 from search_matches import search_matches_FLANN
 from search_matches import search_matches_BF
 from find_bboxes import compute_bbox_angle
+from check_rotation import check_rotation
+from check_rotation import rotate_image
+from check_rotation import compute_coordinates
 
 ## PARAMETERS ##
 with open("config.yml", 'r') as ymlfile:
@@ -138,8 +141,16 @@ def main():
 
         # BACKGROUND REMOVAL
         elif QUERY_SET == 'qsd2_w2' or QUERY_SET == 'qsd2_w3' or QUERY_SET == 'qst2_w3' or QUERY_SET == 'qsd1_w4' or QUERY_SET == 'qst1_w4' or QUERY_SET == 'qsd1_w5' or QUERY_SET == 'qst1_w5':
-            bg_mask, eval_metrics, contours = compute_mask(img,name,QUERY_SET)
-
+            
+            # Find rotation angle of image
+            alpha = check_rotation(img_gray)
+            # Rotate image
+            rotated = rotate_image(im, alpha)
+            # Find original coordinates to crop rotated mask
+            x,y,w,h = compute_coordinates(img_gray)
+            # Compute mask
+            bg_mask, eval_metrics, contours = compute_mask(rotated, im, name, QUERY_SET, alpha, x, y, w, h)
+ 
              # PAINTING COORDINATES AND ROTATION ANGLE DETECTION
             bbox_angles_list = compute_bbox_angle(contours, im)
             bbox_angles_final_list.append(bbox_angles_list)

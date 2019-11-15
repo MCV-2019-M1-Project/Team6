@@ -9,7 +9,7 @@ from compute_mask import compute_mask
 
 """
 This function computes the painting bounding box and its rotation.
-Input parameters: background removal mask
+Input parameters: contours from background removal mask
 """
 
 def compute_bbox_angle(contours, image):
