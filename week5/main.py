@@ -216,9 +216,9 @@ def main():
             prod = prod.astype(np.uint8)
 
             _, prod = cv.threshold(prod,0,255,cv.THRESH_BINARY)
-            cv.imwrite('masks/' + name + '_' + str(m) + '_text.png', text)
-            cv.imwrite('masks/' + name + '_' + str(m) + '_bg.png', bg_mask[m])
-            cv.imwrite('masks/' + name + '_' + str(m) + '_merged.png', prod)
+            #cv.imwrite('masks/' + name + '_' + str(m) + '_text.png', text)
+            #cv.imwrite('masks/' + name + '_' + str(m) + '_bg.png', bg_mask[m])
+            #cv.imwrite('masks/' + name + '_' + str(m) + '_merged.png', prod)
             
             """
             img_show = cv.resize(cv.bitwise_and(img_gray, prod), (512,512))

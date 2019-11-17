@@ -29,7 +29,7 @@ def compute_SIFT(img, mask, size):
         img = cv.bitwise_and(img, img, mask=mask)
 
         img = cv.resize(img, (size,size))
-        img = img[25:(size-25), 25:(size-25)]
+        img = img[30:(size-30), 30:(size-30)]
         """
         cv.imshow('img',img)
         cv.waitKey()
@@ -38,7 +38,7 @@ def compute_SIFT(img, mask, size):
     else:
         # Resize to speed up execution
         img = cv.resize(img, (size,size))
-        img = img[25:(size-25), 25:(size-25)]
+        img = img[30:(size-30), 30:(size-30)]
 
     # Detect and compute the features
     _, des = sift.detectAndCompute(img, None)

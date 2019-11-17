@@ -43,8 +43,8 @@ def search_matches_FLANN(queries, database, K):
     topK_dists = np.abs(sorted(-matches_final))
     print(matches_final)
 
-    th1 = 14 #46 8 3
-    th2 = 10  #10 #60
+    th1 = 13 #46 8 3
+    th2 = 6  #10 #60
     passed = False
     zero_passed = False
     for i in topK_matches_prov:
