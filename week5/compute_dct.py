@@ -25,7 +25,7 @@ def compute_dct(im, block_size, num_coeffs, img_size):
             block = im[i:(i+block_size),j:(j+block_size)]
             block_float = np.float32(block)
             block_dct = cv.dct(block_float)
-            dct_im[i:(i+block_size),j:(j+block_size)] = np.uint8(block_dct) #*255.0
+            dct_im[i:(i+block_size),j:(j+block_size)] = np.uint8(block_dct)*255.0
             dct_block = dct_im[i:(i+block_size),j:(j+block_size)]
 
             #Zig-zag scan of DCT block

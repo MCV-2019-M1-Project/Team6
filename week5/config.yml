@@ -3,4 +3,4 @@ divs: 4                        # Number of horizontal and vertical divisions
 colorspace: HSV               # YUV, LAB or HSV
 dist: hellinger                #'euclidean' 'chisq' or 'hellinger'
 bgrm: 3                        # 1, 2 or 3 bg removal method
-queryset: qst1_w5             # Name of the folder containing the queries (same directory as main.py)
+queryset: qsd1_w5             # Name of the folder containing the queries (same directory as main.py)
